@@ -1,4 +1,6 @@
 from flask import Flask
+from flask_cors import CORS
+
 from config import Config
 
 
@@ -6,6 +8,8 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    #允许cors跨域请求
+    CORS(app)
 
     #注册blueprint
     from app.api import bp as api_bp
