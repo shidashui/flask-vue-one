@@ -1,6 +1,6 @@
 import re
 
-from flask import request, jsonify, url_for
+from flask import request, jsonify, url_for, g
 
 from app import db
 from app.api import bp
@@ -67,10 +67,14 @@ def get_user(id):
     :param id:
     :return:
     """
-    return jsonify(User.query.get_or_404(id).to_dict(include_email=True))
+    user = User.query.get_or_404(id)
+    if g.current_user == user:
+        return jsonify(User.query.get_or_404(id).to_dict(include_email=True))
+    return jsonify(User.query.get_or_404(id).to_dict())
 
 
 @bp.route('/users/<int:id>', methods=['PUT'])
+@token_auth.login_required
 def update_user(id):
     """
     修改一个用户

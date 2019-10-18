@@ -39,7 +39,10 @@ def verify_token(token):
     :param token:
     :return:
     """
-    g.current_user = User.check_token(token) if token else None
+    g.current_user = User.verify_jwt(token) if token else None
+    if g.current_user:
+        # 每次认证通过后（即将访问资源API），更新 last_seen 时间
+        g.current_user.ping()
     return g.current_user is not None
 
 @token_auth.error_handler

@@ -1,10 +1,121 @@
 <template>
-    
+   <section>
+     <div class="container">
+       <div class="g-brd-around g-brd-gray-light-v4 g-pa-20 g-mb-40">
+         <div class="row">
+           <div class="col-sm-3 g-mb-40 g-mb-0--lg">
+             <!--user image-->
+             <div class="g-mb-20">
+               <img v-if="user._links.avatar" class="img-fluid w-100" v-bind:src="user._links.avatar" alt="Image Description">
+             </div>
+             <!--user image-->
+
+             <!--actions-->
+             <router-link v-if="$route.params.id == sharedState.user_id" v-bind:to="{name:'EditProfile'}" class="btn btn-block u-btn-outline-primary g-rounded-50 g-py-12 g-mb-10">
+               <i class="icon-user-follow g-pos-rel g-top-1 g-mr-5"></i> Edit Profile
+             </router-link>
+             <!-- End Actions-->
+           </div>
+
+           <div class="col-sm-9">
+             <!--username-->
+             <div class="d-flex align-items-center justify-content-sm-between g-mb-5">
+               <h2 v-if="user.name" class="g-font-weight-300 g-mr-10">{{user.name}}</h2>
+               <h2 v-else class="g-font-weight-300 g-mr-10">{{user.username}}</h2>
+             </div>
+             <!--end username-->
+
+             <!--member since-->
+             <h4 v-if="user.member_since" class="h6 g-font-weight-300 g-mb-10">
+               <i class="icon-badge g-pos-rel g-top-1 g-color-gray-dark-v5 g-mr-5"></i> Member since : {{$moment(user.member_since).format('LLL')}}
+             </h4>
+             <!-- end member since-->
+
+             <!-- last seen-->
+             <h4 v-if="user.last_seen" class="h6 g-font-weight-300 g-mb-10">
+               <i class="icon-eye g-pos-rel g-top-1 g-color-gray-dark-v5 g-mr-5"></i> Last seen : {{$moment(user.last_seen).fromNow()}}
+             </h4>
+             <!-- end last seen-->
+
+             <!--user info-->
+             <ul class="list-inline g-font-weight-300">
+               <li class="list-inline-item g-mr-20">
+                 <i class="icon-check g-pos-rel g-top-1 g-color-gray-dark-v5 g-mr-5"></i> Verified User
+               </li>
+               <li v-if="user.email" class="list-inline-item g-mr-20">
+                 <i class="icon-link g-pos-rel g-top-1 g-color-gray-dark-v5 g-mr-5"></i>
+                 <a class="g-color-main g-color-primary--hover" v-bind:href="'mailto:'+user.email">{{user.email}}</a>
+               </li>
+             </ul>
+             <!--enduser info-->
+
+             <!--location-->
+             <h4 v-if="user.location" class="h6 g-font-weight-300 g-mb-10">
+               <i class="icon-location-pin g-pos-rel g-top-1 g-color-gray-dark-v5 g-mr-5"></i> {{user.location}}
+             </h4>
+             <!--endlocation-->
+
+             <div v-if="user.about_me">
+               <div class="u-divider u-divider-db-dashed u-divider-center g-brd-gray-light-v2 g-mt-50 g-mb-20">
+                 <i class="u-divider__icon u-divider__icon--indented g-bg-gray-light-v4 g-color-gray-light-v1 rounded-circle">Me</i>
+               </div>
+               <p class="lead g-line-height-1_8">{{user.about_me}}</p>
+             </div>
+           </div>
+         </div>
+       </div>
+     </div>
+   </section>
 </template>
 
 <script>
+  import store from '../store'
     export default {
-        name: "profile"
+        name: "profile",
+      data(){
+          return{
+            sharedState: store.state,   //各种状态
+            user:{
+              username:'',
+              email:'',
+              name:'',
+              location:'',
+              about_me:'',
+              member_since:'',
+              last_seen:'',
+              _links:{
+                self:'',
+                avatar:''
+              }
+            }
+          }
+      },
+      methods:{
+          getUser(id){
+            const path = `/users/${id}`
+            this.$axios.get(path)
+              .then((response)=>{
+                this.user = response.data
+              })
+              .catch((error)=>{
+                //eslint-disable-next-line
+                console.error(error)
+              })
+          }
+      },
+      created(){
+          const user_id = this.$route.params.id
+        this.getUser(user_id)
+      },
+      //当id变化后重新加载数据
+      beforeRouteUpdate(to, from, next){
+        // 在当前路由改变，但是该组件被复用时调用
+        // 举例来说，对于一个带有动态参数的路径 /foo/:id，在 /foo/1 和 /foo/2 之间跳转的时候，
+        // 由于会渲染同样的 Foo 组件，因此组件实例会被复用。而这个钩子就会在这个情况下被调用。
+        // 可以访问组件实例 `this`
+          this.getUser(to.params.id)
+        next()
+      }
     }
 </script>
 

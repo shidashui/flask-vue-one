@@ -35,8 +35,6 @@
 </template>
 
 <script>
-  import axios from 'axios'
-  import store from '../store'
     export default {
         name: "register",
       data(){
@@ -87,16 +85,15 @@
               return false
             }
 
-            const path = 'http://localhost:5000/api/users'
+            const path = '/users'
             const payload = {
               username: this.registerForm.username,
               email: this.registerForm.email,
               password: this.registerForm.password
             }
-            axios.post(path,payload)
+            this.$axios.post(path,payload)
               .then((response) =>{
                 //成功后跳转到login页面
-                store.setNewAction()
                 this.$router.push('/login')
               })
               .catch((error) => {

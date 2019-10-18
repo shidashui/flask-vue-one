@@ -1,8 +1,10 @@
 import base64
 import os
+from hashlib import md5
 from datetime import datetime, timedelta
 
-from flask import url_for
+import jwt
+from flask import url_for, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from app import db
@@ -36,9 +38,15 @@ class User(PaginatedAPIMixin, db.Model):
     email = db.Column(db.String(120), index=True, unique=True)
     password_hash = db.Column(db.String(128))   #不保存原始密码
 
+    name = db.Column(db.String(64))
+    location = db.Column(db.String(64))
+    about_me = db.Column(db.Text())
+    member_since = db.Column(db.DateTime(), default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
+
     #token
-    token = db.Column(db.String(32), index=True, unique=True)
-    token_expiration = db.Column(db.DateTime)
+    # token = db.Column(db.String(32), index=True, unique=True)
+    # token_expiration = db.Column(db.DateTime)
 
     def __repr__(self):
         return '<User {}>',format(self.username)
@@ -53,8 +61,14 @@ class User(PaginatedAPIMixin, db.Model):
         data = {
             'id':self.id,
             'username':self.username,
+            'name':self.name,
+            'location':self.location,
+            'about_me':self.about_me,
+            'member_since':self.member_since.isoformat()+'Z',
+            'last_seen':self.last_seen.isoformat()+'Z',
             '_links':{
-                'self':url_for('api.get_user', id=self.id)
+                'self':url_for('api.get_user', id=self.id),
+                'avatar': self.avatar(128)
             }
         }
         if include_email:
@@ -63,7 +77,7 @@ class User(PaginatedAPIMixin, db.Model):
 
     #json转换成用户对象
     def from_dict(self, data, new_user=False):
-        for field in ['username', 'email']:
+        for field in ['username', 'email', 'name', 'location', 'about_me']:
             if field in data:
                 setattr(self, field, data[field])
         if new_user and 'password' in data:
@@ -88,3 +102,33 @@ class User(PaginatedAPIMixin, db.Model):
         if user is None or user.token_expiration < datetime.utcnow():
             return None
         return user
+
+    #jwt处理token
+    #现在改用 JWT 实现，它可以在 Token 中添加一些不是隐私的数据 payload，比如我们可以把用户 id 放进去
+    def get_jwt(self, expires_in=3600):
+        now = datetime.utcnow()
+        payload = {
+            'user_id': self.id,
+            'name': self.name if self.name else self.username,
+            'exp': now+timedelta(seconds=expires_in),
+            'iat': now
+        }
+        return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256').decode('utf-8')
+
+    @staticmethod
+    def verify_jwt(token):
+        try:
+            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+        except (jwt.exceptions.ExpiredSignatureError, jwt.exceptions.InvalidSignatureError) as e:
+            #token过期，被修改都会失效
+            return None
+        return User.query.get(payload.get('user_id'))
+
+    def avatar(self, size):
+        """头像"""
+        digest = md5(self.email.lower().encode('utf-8')).hexdigest()
+        return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(digest,size)
+
+    def ping(self):
+        self.last_seen = datetime.utcnow()
+        db.session.add(self)

@@ -5,7 +5,6 @@
 </template>
 
 <script>
-  import axios from 'axios'
 
     export default {
         name: "Ping",
@@ -16,10 +15,11 @@
       },
       methods:{
           getMessage(){
-            const path = 'http://localhost:5000/api/ping'
-            axios.get(path)
+            const path = '/ping'
+            this.$axios.get(path)
               .then((res)=>{
                 this.msg = res.data;
+                this.$toasted.info('Success connect to Flask API', { icon: 'fingerprint' })
               })
               .catch((error)=>{
                 //eslint-disable-next-line

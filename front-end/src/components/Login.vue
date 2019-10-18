@@ -1,10 +1,10 @@
 <template>
     <div class="container">
-      <alert
-        v-if="shareState.is_new"
-        v-bind:variant="alertVariant"
-        v-bind:message="alertMessage">
-      </alert>
+<!--      <alert-->
+<!--        v-if="shareState.is_new"-->
+<!--        v-bind:variant="alertVariant"-->
+<!--        v-bind:message="alertMessage">-->
+<!--      </alert>-->
       <h1>Sign In</h1>
       <div class="row">
         <div class="col-md-4">
@@ -37,18 +37,18 @@
 </template>
 
 <script>
-  import axios from 'axios'
-  import Alert from './Alert'
+  // import axios from 'axios'
+  // import Alert from './Alert'
   import store from '../store'
 
     export default {
         name: "Login",
-      components: {Alert},
+      // components: {Alert},
       data(){
           return{
             shareState: store.state,
-            alertVariant: 'info',
-            alertMessage: 'Congratulations, you are now a registered user !',
+            // alertVariant: 'info',
+            // alertMessage: 'Congratulations, you are now a registered user !',
             loginForm:{
               username:'',
               password:'',
@@ -83,17 +83,22 @@
               return false
             }
 
-            const path = 'http://localhost:5000/api/tokens'
+            // const path = 'http://localhost:5000/api/tokens'
+            const path = '/tokens'
             //axios 实现Basic Auth需要再config中设置auth这个属性即可
-            axios.post(path, {},{
+            this.$axios.post(path, {},{
               auth:{
                 'username':this.loginForm.username,
                 'password':this.loginForm.password
               }
             }).then((response) => {
               window.localStorage.setItem('codershui-token', response.data.token)
-              store.resetNotNewAction()
+              // store.resetNotNewAction()
               store.loginAction()
+
+              //登陆后提示
+              const name = JSON.parse(atob(response.data.token.split('.')[1])).name
+              this.$toasted.success(`Welcome ${name}!`, {icon:'fingerprint'}) //用的反引号
 
               if (typeof this.$route.query.redirect == 'undefined') {
                 this.$router.push('/')
@@ -103,6 +108,7 @@
             })
               .catch((error)=>{
                 //发生错误
+                console.log(error)
                 if (error.response.status == 401){
                   this.loginForm.usernameError = 'Invalid username or password.'
                   this.loginForm.passwordError = 'Invalid username or password.'
