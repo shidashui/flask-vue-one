@@ -6,6 +6,7 @@ import Login from "../components/Login";
 import Register from "../components/Register";
 import Profile from "../components/Profile";
 import EditProfile from "../components/EditProfile";
+import Post from "../components/Post";
 
 Vue.use(Router)
 
@@ -18,6 +19,11 @@ const router = new Router({
       meta:{
         requiresAuth:true
       }
+    },
+    {
+      path:'/post/:id',
+      name:'Post',
+      component:Post
     },
     {
       path:'/login',
@@ -56,6 +62,7 @@ const router = new Router({
 router.beforeEach((to, from, next) =>{
   const token = window.localStorage.getItem('codershui-token')
   if (to.matched.some(record =>record.meta.requiresAuth)&&(!token||token===null)){
+    Vue.toasted.show('Please log in to access this page.', { icon: 'fingerprint' })
     next({
       path:'/login',
       query:{redirect: to.fullPath}
@@ -66,8 +73,8 @@ router.beforeEach((to, from, next) =>{
       path:from.fullPath
     })
   } else if (to.matched.length === 0){ //要前往的路由不存在时
-    console.log('here')
-    console.log(to.matched)
+    // console.log('here')
+    // console.log(to.matched)
     Vue.toasted.error('404: Not Found', {icon:'fingerprint'})
     if (from.name){
       next({

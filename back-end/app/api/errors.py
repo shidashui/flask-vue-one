@@ -1,7 +1,7 @@
 from flask import jsonify
 from werkzeug.http import HTTP_STATUS_CODES
 
-from app import db
+from app.extensions import db
 from app.api import bp
 
 

@@ -9,18 +9,16 @@
       <div class="row">
         <div class="col-md-4">
           <form @submit.prevent="onSubmit">
-            <div class="form-group">
+            <div class="form-group" v-bind:class="{'is-invalid': loginForm.usernameError}">
               <label for="username">Username</label>
-              <input type="text" v-model="loginForm.username" class="form-control"
-                     v-bind:class="{'is-invalid': loginForm.usernameError}" id="username" placeholder="">
-              <div v-show="loginForm.usernameError" class="invalid-feedback">{{ loginForm.usernameError }}</div>
+              <input type="text" v-model="loginForm.username" class="form-control" id="username" placeholder="">
+              <small class="form-control-feedback" v-show="loginForm.usernameError">{{ loginForm.usernameError }}</small>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" v-bind:class="{'is-invalid': loginForm.passwordError}">
               <label for="password">Password</label>
-              <input type="password" v-model="loginForm.password" class="form-control"
-                     v-bind:class="{'is-invalid': loginForm.passwordError}" id="password" placeholder="">
-              <div v-show="loginForm.passwordError" class="invalid-feedback">{{loginForm.passwordError}}</div>
+              <input type="password" v-model="loginForm.password" class="form-control" id="password" placeholder="">
+              <small class="form-control-feedback" v-show="loginForm.passwordError">{{ loginForm.passwordError }}</small>
             </div>
             <button type="submit" class="btn btn-primary">Sign In</button>
           </form>
@@ -84,7 +82,7 @@
             }
 
             // const path = 'http://localhost:5000/api/tokens'
-            const path = '/tokens'
+            const path = '/api/tokens'
             //axios 实现Basic Auth需要再config中设置auth这个属性即可
             this.$axios.post(path, {},{
               auth:{

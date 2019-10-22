@@ -1,6 +1,6 @@
 from flask import request, g, jsonify, url_for
 
-from app import db
+from app.extensions import db
 from app.api import bp
 from app.api.auth import token_auth
 from app.api.errors import bad_request, error_response

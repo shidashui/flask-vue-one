@@ -7,14 +7,18 @@ import jwt
 from flask import url_for, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from app import db
 
 
 #通用类
+from app.extensions import db
+
+
 class PaginatedAPIMixin(object):
     @staticmethod
     def to_collection_dict(query, page, per_page, endpoint, **kwargs):
-        resources = query.paginate(page, per_page, False)
+        # 如果当前没有任何资源时，或者前端请求的 page 越界时，都会抛出 404 错误
+        # 由 @bp.app_errorhandler(404) 自动处理，即响应 JSON 数据：{ error: "Not Found" }
+        resources = query.paginate(page, per_page)
         data = {
             'items': [item.to_dict() for item in resources.items],
             '_meta':{

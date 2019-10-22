@@ -6,7 +6,7 @@ import Vue from 'vue'
 
 //基础配置
 axios.defaults.timeout = 5000   //超出时间
-axios.defaults.baseURL = 'http://localhost:5000/api'
+axios.defaults.baseURL = 'http://localhost:5000'
 
 //add a request interceptor
 axios.interceptors.request.use(function (config) {
@@ -45,6 +45,16 @@ axios.interceptors.response.use(function (response) {
           Vue.toasted.error('404:Not Found',{icon:'fingerprint'})
           router.back()
           break
+
+    case 403:
+      Vue.toasted.error('403: Forbidden', { icon: 'fingerprint' })
+      router.back()
+      break
+
+    case 500:  // 根本拿不到 500 错误，因为 CORs 不会过来
+      Vue.toasted.error('500: Oops... INTERNAL SERVER ERROR', { icon: 'fingerprint' })
+      router.back()
+      break
   }
   return Promise.reject(error)
 })
