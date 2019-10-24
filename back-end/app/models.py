@@ -7,9 +7,7 @@ import jwt
 from flask import url_for, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 
-
-
-#通用类
+# 通用类
 from app.extensions import db
 
 
@@ -21,26 +19,37 @@ class PaginatedAPIMixin(object):
         resources = query.paginate(page, per_page)
         data = {
             'items': [item.to_dict() for item in resources.items],
-            '_meta':{
-                'page':page,
-                'per_page':per_page,
-                'total_pages':resources.pages,
-                'total_items':resources.total
+            '_meta': {
+                'page': page,
+                'per_page': per_page,
+                'total_pages': resources.pages,
+                'total_items': resources.total
             },
-            '_links':{
-                'self':url_for(endpoint, page=page, per_page=per_page,**kwargs),
-                'next':url_for(endpoint, page=page+1, per_page=per_page,**kwargs) if resources.has_next else None,
-                'prev':url_for(endpoint, page=page-1, per_page=per_page,**kwargs) if resources.has_prev else None
+            '_links': {
+                'self': url_for(endpoint, page=page, per_page=per_page, **kwargs),
+                'next': url_for(endpoint, page=page + 1, per_page=per_page, **kwargs) if resources.has_next else None,
+                'prev': url_for(endpoint, page=page - 1, per_page=per_page, **kwargs) if resources.has_prev else None
             }
         }
         return data
 
 
+followers = db.Table(
+    'followers',
+    db.Column('follower_id', db.Integer, db.ForeignKey('users.id')),  # 粉丝
+    db.Column('followed_id', db.Integer, db.ForeignKey('users.id')),  # 大神
+    db.Column('timestamp', db.DateTime, default=datetime.utcnow)
+)
+
+
 class User(PaginatedAPIMixin, db.Model):
+    # 设置数据库表名，Post模型中的外键 author_id 会引用 users.id
+    __tablename__ = 'users'
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     email = db.Column(db.String(120), index=True, unique=True)
-    password_hash = db.Column(db.String(128))   #不保存原始密码
+    password_hash = db.Column(db.String(128))  # 不保存原始密码
 
     name = db.Column(db.String(64))
     location = db.Column(db.String(64))
@@ -52,12 +61,21 @@ class User(PaginatedAPIMixin, db.Model):
     # cascade 用于级联删除，当删除user时，该user下面的所有posts都会被级联删除
     posts = db.relationship('Post', backref='author', lazy='dynamic', cascade='all, delete-orphan')
 
-    #token
+    # followeds 是该用户关注了哪些用户列表
+    # followers 是该用户的粉丝列表
+    followeds = db.relationship(
+        'User', secondary=followers,
+        primaryjoin=(followers.c.follower_id == id),
+        secondaryjoin=(followers.c.followed_id == id),
+        backref=db.backref('followers', lazy='dynamic'), lazy='dynamic'
+    )
+
+    # token
     # token = db.Column(db.String(32), index=True, unique=True)
     # token_expiration = db.Column(db.DateTime)
 
     def __repr__(self):
-        return '<User {}>',format(self.username)
+        return '<User {}>', format(self.username)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -67,23 +85,29 @@ class User(PaginatedAPIMixin, db.Model):
 
     def to_dict(self, include_email=False):
         data = {
-            'id':self.id,
-            'username':self.username,
-            'name':self.name,
-            'location':self.location,
-            'about_me':self.about_me,
-            'member_since':self.member_since.isoformat()+'Z',
-            'last_seen':self.last_seen.isoformat()+'Z',
-            '_links':{
-                'self':url_for('api.get_user', id=self.id),
-                'avatar': self.avatar(128)
+            'id': self.id,
+            'username': self.username,
+            'name': self.name,
+            'location': self.location,
+            'about_me': self.about_me,
+            'member_since': self.member_since.isoformat() + 'Z',
+            'last_seen': self.last_seen.isoformat() + 'Z',
+            'posts_count':self.posts.count(),
+            'followed_posts_count':self.followed_posts.count(),
+            'followeds_count':self.followeds.count(),
+            'followers_count':self.followers.count(),
+            '_links': {
+                'self': url_for('api.get_user', id=self.id),
+                'avatar': self.avatar(128),
+                'followeds': url_for('api.get_followeds', id=self.id),
+                'followers': url_for('api.get_followers', id=self.id)
             }
         }
         if include_email:
             data['email'] = self.email
         return data
 
-    #json转换成用户对象
+    # json转换成用户对象
     def from_dict(self, data, new_user=False):
         for field in ['username', 'email', 'name', 'location', 'about_me']:
             if field in data:
@@ -91,7 +115,7 @@ class User(PaginatedAPIMixin, db.Model):
         if new_user and 'password' in data:
             self.set_password(data['password'])
 
-    #token处理
+    # token处理
     def get_token(self, expires_in=3600):
         now = datetime.utcnow()
         if self.token and self.token_expiration > now + timedelta(seconds=60):
@@ -111,14 +135,15 @@ class User(PaginatedAPIMixin, db.Model):
             return None
         return user
 
-    #jwt处理token
-    #现在改用 JWT 实现，它可以在 Token 中添加一些不是隐私的数据 payload，比如我们可以把用户 id 放进去
+    # jwt处理token
+    # 现在改用 JWT 实现，它可以在 Token 中添加一些不是隐私的数据 payload，比如我们可以把用户 id 放进去
     def get_jwt(self, expires_in=3600):
         now = datetime.utcnow()
         payload = {
             'user_id': self.id,
-            'name': self.name if self.name else self.username,
-            'exp': now+timedelta(seconds=expires_in),
+            'user_name': self.name if self.name else self.username,
+            'user_avatar': base64.b64encode(self.avatar(24).encode('utf-8')).decode('utf-8'),
+            'exp': now + timedelta(seconds=expires_in),
             'iat': now
         }
         return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256').decode('utf-8')
@@ -127,19 +152,49 @@ class User(PaginatedAPIMixin, db.Model):
     def verify_jwt(token):
         try:
             payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-        except (jwt.exceptions.ExpiredSignatureError, jwt.exceptions.InvalidSignatureError) as e:
-            #token过期，被修改都会失效
+        except (jwt.exceptions.ExpiredSignatureError, jwt.exceptions.InvalidSignatureError, jwt.exceptions.DecodeError) as e:
+            # token过期，被修改都会失效
             return None
         return User.query.get(payload.get('user_id'))
 
     def avatar(self, size):
         """头像"""
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
-        return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(digest,size)
+        return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(digest, size)
 
     def ping(self):
         self.last_seen = datetime.utcnow()
         db.session.add(self)
+
+    #关注
+    def is_following(self, user):
+        """
+        判断当前用户是否关注了user这个用户对象，如果关注了，下面表达式左边是1，否则是0
+        :param user:
+        :return:
+        """
+        return self.followeds.filter(followers.c.followed_id == user.id).count() > 0
+
+    def follow(self, user):
+        if not self.is_following(user):
+            self.followeds.append(user)
+
+    def unfollow(self, user):
+        if self.is_following(user):
+            self.followeds.remove(user)
+
+    @property
+    def followed_posts(self):
+        """
+        获取当前用户的关注者的所有博客列表
+        :return:
+        """
+        followed = Post.query.join(followers,
+                                   (followers.c.followed_id == Post.author_id)).filter(followers.c.follower_id == self.id)
+        # 包含当前用户自己的博客列表
+        # own = Post.query.filter_by(user_id=self.id)
+        # return followed.union(own).order_by(Post.timestamp.desc())
+        return followed.order_by(Post.timestamp.desc())
 
 
 
@@ -154,7 +209,8 @@ class Post(PaginatedAPIMixin, db.Model):
 
     # 外键, 直接操纵数据库当user下面有posts时不允许删除user，下面仅仅是 ORM-level “delete” cascade
     # db.ForeignKey('users.id', ondelete='CASCADE') 会同时在数据库中指定 FOREIGN KEY level “ON DELETE” cascade
-    author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
     # author = db.relationship('User', backref='posts')
 
     def __repr__(self):
@@ -176,8 +232,8 @@ class Post(PaginatedAPIMixin, db.Model):
         }
         return data
 
-    def from_dict(self,data):
-        for field in ['title','summary','body']:
+    def from_dict(self, data):
+        for field in ['title', 'summary', 'body']:
             if field in data:
                 setattr(self, field, data[field])
 
@@ -189,5 +245,6 @@ class Post(PaginatedAPIMixin, db.Model):
         '''
         if not target.summary:  # 如果前端不填写摘要，是空str，而不是None
             target.summary = value[:200] + '  ... ...'  # 截取 body 字段的前200个字符给 summary
+
 
 db.event.listen(Post.body, 'set', Post.on_changed_body)  # body 字段有变化时，执行 on_changed_body() 方法

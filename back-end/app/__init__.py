@@ -1,3 +1,4 @@
+import click
 from flask import Flask
 from app.api import bp as api_bp
 
@@ -21,6 +22,7 @@ def create_app(config_class=None):
     configure_before_handlers(app)
     configure_after_handlers(app)
     configure_errorhandlers(app)
+    configure_commands(app)
 
     return app
 
@@ -55,3 +57,27 @@ def configure_errorhandlers(app):
     '''Configures the error handlers'''
     pass
 
+def configure_commands(app):
+    @app.cli.command()
+    @click.option('--drop', is_flag=True, help='先删除后创建')
+    def initdb(drop):
+        if drop:
+            click.confirm('此操作会删除数据库', abort=True)
+            db.drop_all()
+            click.echo('已删除')
+        db.create_all()
+        click.echo('初始化数据库')
+
+    @app.cli.command()
+    @click.option('--user', default=10, help='用户数量，默认10')
+    @click.option('--post', default=50, help='博客数量, 默认50')
+    def forge(user, post):
+        from app.fakes import fake_admin, fake_users, fake_posts, fake_follow
+
+        db.drop_all()
+        db.create_all()
+        fake_admin()
+        fake_users(count=user)
+        fake_posts(count=post)
+        fake_follow()
+        click.echo('数据填充')

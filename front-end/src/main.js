@@ -3,29 +3,28 @@
 import Vue from 'vue'
 import App from './App'
 import router from './router'
-//导入css文件
-//import bootstrap css and js files
+// 导入配置了全局拦截器后的 axios
+import axios from './http'
+// 导入 moment.js 用来格式化 UTC 时间为本地时间
+import moment from 'moment'
+// Import Bootstrap css and js files
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap'
-//bootstrap-markdown 编辑器需要的样式
+// 字体图标
+import './assets/icon-line/css/simple-line-icons.css'
+import './assets/icon-material/material-icons.css'
+// bootstrap-markdown 编辑器需要的样式
 import './assets/bootstrap-markdown/css/bootstrap-markdown.min.css'
 import './assets/bootstrap-markdown/css/custom.css'
-import './assets/icon-awesome/css/font-awesome.min.css' //编辑器上的按钮图标使用font-awesome
+import './assets/icon-awesome/css/font-awesome.min.css'  // 编辑器上的按钮图标是使用 font-awesome 字体图标
 // markdown 样式
 import './assets/markdown-styles/github-markdown.css'
 // 自定义 css 文件
 import './assets/core.css'
 import './assets/custom.css'
-// 图标
-import './assets/icon-line/css/simple-line-icons.css'
-import './assets/icon-material/material-icons.css'
-//消息插件
-import VueToasted from 'vue-toasted'
-//导入配置了全局拦截器后的axios
-import axios from './http'
-// 导入 moment.js 用来格式化 UTC 时间为本地时间
-import moment from 'moment'
 
+// register the vue-toasted plugin on vue
+import VueToasted  from 'vue-toasted'
 
 
 
@@ -49,6 +48,7 @@ Vue.use(VueToasted,{
 
 // register the vue-sweetalert2 plugin on vue
 import VueSweetalert2 from 'vue-sweetalert2'
+import 'sweetalert2/dist/sweetalert2.min.css';
 Vue.use(VueSweetalert2)
 
 

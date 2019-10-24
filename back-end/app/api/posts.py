@@ -1,4 +1,4 @@
-from flask import request, g, jsonify, url_for
+from flask import request, g, jsonify, url_for, current_app
 
 from app.extensions import db
 from app.api import bp
@@ -54,7 +54,8 @@ def get_posts():
     :return:
     """
     page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 10, type=int), 100)
+    # per_page = min(request.args.get('per_page', 10, type=int), 100)
+    per_page = min(request.args.get('per_page', current_app.config['POSTS_PER_PAGE'], type=int), 100)
     data = Post.to_collection_dict(Post.query.order_by(Post.timestamp.desc()), page, per_page, 'api.get_posts')
     return jsonify(data)
 
