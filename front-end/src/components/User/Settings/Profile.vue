@@ -24,10 +24,10 @@
 </template>
 
 <script>
-  import store from '../store'
+  import store from '../../../store'
 
     export default {
-        name: "EditProfile",
+        name: "Profile",
       data(){
           return{
             sharedState:store.state,

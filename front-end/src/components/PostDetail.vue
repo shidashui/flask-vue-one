@@ -51,8 +51,7 @@
                 <span class="btn btn-xs u-btn-outline-aqua g-mr-10">评论</span>
               </li>
               <li v-if="post.author" class="list-inline-item">
-                <router-link v-bind:to="{ name: 'Profile', params: { id: post.author.id }}"
-                             class="u-link-v5 g-color-gray-dark-v4 g-color-primary--hover g-text-underline--none--hover">
+                <router-link v-bind:to="{ path: `/user/${post.author.id}` }" class="u-link-v5 g-color-gray-dark-v4 g-color-primary--hover g-text-underline--none--hover">
                   <span v-if="post.author.name">{{ post.author.name }}</span>
                   <span v-else>{{ post.author.username }}</span>
                 </router-link>
@@ -122,7 +121,7 @@
   import '../assets/jquery.sticky'
 
     export default {
-        name: "Post",
+        name: "PostDetail",
       components:{
           VueMarkdown
       },

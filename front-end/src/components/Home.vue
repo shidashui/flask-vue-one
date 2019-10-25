@@ -60,19 +60,19 @@
               <i class="icon-options-vertical g-pos-rel g-top-1"></i>
             </span>
             <div class="dropdown-menu dropdown-menu-right rounded-0 g-mt-10">
-              <router-link v-bind:to="{name:'Home',query:{page:1, per_page:5}}" class="dropdown-item g-px-10">
+              <router-link v-bind:to="{path: $route.path,query:{page:1, per_page:5}}" class="dropdown-item g-px-10">
                 <i class="icon-layers g-font-size-12 g-color-gray-dark-v5 g-mr-5"></i> 每页 5 篇
               </router-link>
-              <router-link v-bind:to="{name:'Home', query:{page:1, per_page:10}}" class="dropdown-item g-px-10">
+              <router-link v-bind:to="{path: $route.path, query:{page:1, per_page:10}}" class="dropdown-item g-px-10">
                 <i class="icon-wallet g-font-size-12 g-color-gray-dark-v5 g-mr-5"></i> 每页 10 篇
               </router-link>
-              <router-link v-bind:to="{name:'Home', query:{page:1, per_page:20}}" class="dropdown-item g-px-10">
+              <router-link v-bind:to="{path: $route.path, query:{page:1, per_page:20}}" class="dropdown-item g-px-10">
                 <i class="icon-fire g-font-size-12 g-color-gray-dark-v5 g-mr-5"></i> 每页 20 篇
               </router-link>
 
               <div class="dropdown-divider"></div>
 
-              <router-link v-bind:to="{name:'Home',query:{page:1, per_page:1}}" class="dropdown-item g-px-10">
+              <router-link v-bind:to="{path: $route.path,query:{page:1, per_page:1}}" class="dropdown-item g-px-10">
                 <i class="icon-plus g-font-size-12 g-color-gray-dark-v5 g-mr-5"></i> 每页 1 篇
               </router-link>
             </div>
@@ -82,91 +82,23 @@
 
         <!--panel body-->
         <div v-if="posts" class="card-block g-pa-0">
-          <div v-for="(post, index) in posts.items" v-bind:key="index" class="media g-brd-around g-brd-gray-light-v4 g-pa-20 g-mb-20">
-            <router-link v-bind:to="{name:'Profile', params: {id:post.author.id}}" v-bind:title="post.author.name || post.author.username">
-              <img class="d-flex g-width-50 g-height-50 g-mt-3 g-mr-20" v-bind:src="post.author._links.avatar" v-bind:alt="post.author.username">
-            </router-link>
-
-            <div class="media-body">
-              <div class="d-sm-flex justify-content-sm-between align-items-sm-center g-mb-15 g-mb-10--sm">
-                <h5 class="h4 g-font-weight-300 g-mr-10 g-mb-5 g-mb-0--sm">
-                  <router-link v-bind:to="{name:'Post', params:{id:post.id}}" class="g-text-underline--none--hover">{{post.title}}</router-link>
-                </h5>
-                <div class="text-nowrap g-font-size-12">
-                  <span>{{$moment(post.timestamp).fromNow()}}</span> / <router-link v-bind:to="{name:'Profile',params:{id:post.author.id}}">
-                  <span v-if="post.author.name">{{post.author.name}}</span><span v-else>{{post.author.username}}</span>
-                </router-link>
-                </div>
-              </div>
-
-              <!--vue-markdown-->
-
-
-              <div class="d-flex justify-content-start">
-                <ul class="list-inline mb-0">
-                  <li class="list-inline-item g-mr-20">
-                    <a class="g-color-gray-dark-v5 g-text-underline--none--hover" href="page-profile-comments-1.html#">
-                      <i class="icon-eye g-pos-rel g-top-1 g-mr-3"></i> {{post.views}}
-                    </a>
-                  </li>
-                </ul>
-                <ul class="list-inline mb-0 ml-auto">
-                  <li class="list-inline-item g-mr-5">
-                    <router-link v-bind:to="{name:'Post', params:{id:post.id}}" class="btn btn-xs u-btn-outline-primary">阅读全文</router-link>
-                  </li>
-                  <li v-if="post.author.id == sharedState.user_id" class="list-inline-item g-mr-5">
-                    <button v-on:click="onEditPost(post)" class="btn btn-xs u-btn-outline-purple" data-toggle="modal" data-target="#updatePostModal">编辑</button>
-                  </li>
-                  <li v-if="post.author.id == sharedState.user_id" class="list-inline-item">
-                    <button v-on:click="onDeletePost(post)" class="btn btn-xs u-btn-outline-red">删除</button>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
+          <post v-for="(post, index) in posts.items" v-bind:key="index"
+                v-bind:post="post"
+                v-on:edit-post="onEditPost(post)"
+                v-on:delete-post="onDeletePost(post)">
+          </post>
         </div>
         <!-- end panel body-->
       </div>
 
       <!-- pagination -->
-      <nav v-if="posts" aria-label="Page Navigation" class="g-mb-50">
-        <ul class="list-inline">
-          <li class="list-inline-item">
-            <router-link v-bind:to="{ name: 'Home', query: { page: posts._meta.page - 1, per_page: posts._meta.per_page }}"
-                         v-bind:class="{'u-pagination-v1__item--disabled': posts._meta.page == 1}" class="u-pagination-v1__item u-pagination-v1-1 g-rounded-50 g-pa-12-21"
-                         aria-label="Previous">
-              <span aria-hidden="true">
-                <i class="fa fa-angle-left"></i>
-              </span>
-              <span class="sr-only">Previous</span>
-            </router-link>
-          </li>
-
-          <li v-if="page!='NaN'" v-for="(page, index) in iter_pages" v-bind:key="index" class="list-inline-item g-hidden-sm-down">
-            <router-link v-bind:to="{ name: 'Home', query: { page: page, per_page: posts._meta.per_page }}"
-                         v-bind:class="{'u-pagination-v1-1--active': $route.query.page == page || (!$route.query.page && page == 1)}"
-                         class="u-pagination-v1__item u-pagination-v1-1 g-rounded-50 g-pa-12-19">
-              {{page}}
-            </router-link>
-          </li>
-          <li v-else class="list-inline-item g-hidden-sm-down">
-            <span class="g-pa-12-19">...</span>
-          </li>
-
-          <li class="list-inline-item">
-            <router-link v-bind:to="{ name: 'Home', query: { page: posts._meta.page + 1, per_page: posts._meta.per_page }}" v-bind:class="{'u-pagination-v1__item--disabled': posts._meta.page == posts._meta.total_pages }" class="u-pagination-v1__item u-pagination-v1-1 g-rounded-50 g-pa-12-21" aria-label="Next">
-            <span aria-hidden="true">
-              <i class="fa fa-angle-right"></i>
-            </span>
-              <span class="sr-only">Next</span>
-            </router-link>
-          </li>
-
-          <li class="list-inline-item float-right">
-            <span class="u-pagination-v1__item-info g-pa-12-19">Page {{ posts._meta.page }} of {{ posts._meta.total_pages }}</span>
-          </li>
-        </ul>
-      </nav>
+      <div v-if="posts">
+        <pagination
+          v-bind:cur-page="posts._meta.page"
+          v-bind:per-page="posts._meta.per_page"
+          v-bind:total-pages="posts._meta.total_pages">
+        </pagination>
+      </div>
     </div>
 </template>
 
@@ -178,10 +110,14 @@
   import '../assets/bootstrap-markdown/js/bootstrap-markdown'
   import '../assets/bootstrap-markdown/js/bootstrap-markdown.zh'
   import '../assets/bootstrap-markdown/js/marked'
+  import Post from "./Base/Post";
+  import Pagination from "./Base/Pagination";
 
     export default {
         name: "Home",
       components: {
+        Pagination,
+        Post
       },
       data(){
           return{
@@ -209,7 +145,7 @@
       methods:{
           getPosts(){
             let page = 1
-            let per_page = 3
+            let per_page = 5
             if (typeof this.$route.query.page != 'undefined'){
               page = this.$route.query.page
             }
@@ -223,20 +159,6 @@
               .then((response)=>{
                 //handle success
                 this.posts = response.data
-                //构建分页导航，当前页左右个显示2页，比如1，2.。。7，8，9.。。30，31
-                let arr = [1,2,this.posts._meta.page-2, this.posts._meta.page-1,this.posts._meta.page,this.posts._meta.page+1,this.posts._meta.page+2,this.posts._meta.total_pages-1,this.posts._meta.total_pages]
-                //小于1，或大于最大页都是非法的，要去除
-                arr = arr.filter(item=> item>0 && item<=this.posts._meta.total_pages)
-                //去除重复项
-                this.iter_pages = [...new Set(arr)]
-                //假设当前页为1，总页数为6或以上时，在倒数第二个位置插入特殊标记1，2，3，。。。5，6
-                if(this.posts._meta.page+2 < this.posts._meta.total_pages-2){
-                  this.iter_pages.splice(-2,0,'NaN')
-                }
-                // 当前页为6或6以上时，在第3个位置插入特殊标记  1, 2 ... 4, 5, 6
-                if(this.posts._meta.page-3 > 2){
-                  this.iter_pages.splice(2,0,'NaN')
-                }
               })
               .catch((error)=>{
                 //handle error
@@ -261,6 +183,7 @@
             $('.md-editor').closest('.form-group').addClass('u-has-error-1')  //bootstrap4
           } else{
             this.postForm.bodyError = null
+            $('.md-editor').closest('.form-group').removeClass('u-has-error-v1')
           }
 
           if (this.postForm.errors > 0){
@@ -349,6 +272,10 @@
         },
 
         onResetUpdate(){
+          // 先移除错误
+          $('.form-control-feedback').remove()
+          $('.form-group.u-has-error-v1').removeClass('u-has-error-v1')
+          // 再隐藏 Modal
             $('#updatePostModal').modal('hide')
           this.$toasted.info('Cancelled, the post is not update.',{icon:'fingerprint'})
         },

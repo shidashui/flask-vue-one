@@ -37,7 +37,7 @@
 <script>
   // import axios from 'axios'
   // import Alert from './Alert'
-  import store from '../store'
+  import store from '../../../store'
 
     export default {
         name: "Login",
@@ -95,7 +95,8 @@
               store.loginAction()
 
               //登陆后提示
-              const name = JSON.parse(atob(response.data.token.split('.')[1])).name
+              // console.log(JSON.parse(atob(response.data.token.split('.')[1])))
+              const name = JSON.parse(atob(response.data.token.split('.')[1])).user_name
               this.$toasted.success(`Welcome ${name}!`, {icon:'fingerprint'}) //用的反引号
 
               if (typeof this.$route.query.redirect == 'undefined') {
