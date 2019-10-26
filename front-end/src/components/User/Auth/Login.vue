@@ -107,14 +107,17 @@
             })
               .catch((error)=>{
                 //发生错误
-                console.log(error)
-                if (error.response.status == 401){
-                  this.loginForm.usernameError = 'Invalid username or password.'
-                  this.loginForm.passwordError = 'Invalid username or password.'
-                } else {
-                  console.log('报错')
-                  console.log(error.response)
+                // console.log(error)
+                if (typeof error.response != 'undefined'){
+                  if (error.response.status == 401){
+                    this.loginForm.usernameError = 'Invalid username or password.'
+                    this.loginForm.passwordError = 'Invalid username or password.'
+                  } else {
+                    console.log('报错')
+                    console.log(error.response)
+                  }
                 }
+
               })
           }
       }
