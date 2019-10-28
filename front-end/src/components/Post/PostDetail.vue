@@ -106,7 +106,7 @@
 <script>
   // 导入 vue-markdown 组件解析 markdown 原文为　HTML
   import VueMarkdown from 'vue-markdown'
-  import store from "../store";
+  import store from "../../store";
   // vue-router 从 Home 页路由到 Post 页后，会重新渲染并且会移除事件，自定义的指令 v-highlight 也不生效了
   // 所以，这个页面，在 mounted() 和 updated() 方法中调用 highlightCode() 可以解决代码不高亮问题
   import hljs from 'highlight.js'
@@ -118,7 +118,7 @@
   }
 
   // 固定 TOC
-  import '../assets/jquery.sticky'
+  import '../../assets/jquery.sticky'
 
     export default {
         name: "PostDetail",

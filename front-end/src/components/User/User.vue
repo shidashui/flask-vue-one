@@ -66,6 +66,12 @@
                    FollowingPosts <span class="u-label g-font-size-11 g-bg-blue g-rounded-20 g-px-10">{{ user.followed_posts_count }}</span>
                  </router-link>
                </li>
+
+               <li class="nav-item">
+                 <router-link v-bind:to="{ name: 'UserCommentsList' }" v-bind:active-class="'active'" class="nav-link">
+                   Comments <span class="u-label g-font-size-11 g-bg-deeporange g-rounded-20 g-px-10">{{ user.comments_count }}</span>
+                 </router-link>
+               </li>
              </ul>
 
              <!-- 嵌套的子路由出口 -->

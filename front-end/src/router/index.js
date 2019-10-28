@@ -18,7 +18,8 @@ import Profile from "../components/User/Settings/Profile";
 import Account from "../components/User/Settings/Account";
 import Email from "../components/User/Settings/Email";
 //博客详情页
-import PostDetail from "../components/PostDetail";
+import PostDetail from "../components/Post/PostDetail";
+import UserCommentsList from "../components/Comment/UserCommentsList";
 
 
 
@@ -62,7 +63,7 @@ const router = new Router({
         {path: 'overview', name: 'UserOverview', component: Overview},
 
         // Followers will be rendered inside User's <router-view>
-        // when /user/:id/followers is matched
+        //         // when /user/:id/followers is matched
         {path: 'followers', name: 'UserFollowers', component: Followers},
 
         // Following will be rendered inside User's <router-view>
@@ -75,7 +76,9 @@ const router = new Router({
 
         // UserFollowedsPostsList will be rendered inside User's <router-view>
         // when /user/:id/followeds-posts is matched
-        {path: 'followeds-posts', name: 'UserFollowedsPostsList', component: UserFollowedsPostsList}
+        {path: 'followeds-posts', name: 'UserFollowedsPostsList', component: UserFollowedsPostsList},
+
+        {path: 'comments', name: 'UserCommentsList', component: UserCommentsList}
       ],
       meta:{
         requiresAuth:true

@@ -70,6 +70,9 @@ class User(PaginatedAPIMixin, db.Model):
         backref=db.backref('followers', lazy='dynamic'), lazy='dynamic'
     )
 
+    # 评论  一对多
+    comments = db.relationship('Comment', backref='author', lazy='dynamic', cascade='all, delete-orphan')
+
     # token
     # token = db.Column(db.String(32), index=True, unique=True)
     # token_expiration = db.Column(db.DateTime)
@@ -92,15 +95,19 @@ class User(PaginatedAPIMixin, db.Model):
             'about_me': self.about_me,
             'member_since': self.member_since.isoformat() + 'Z',
             'last_seen': self.last_seen.isoformat() + 'Z',
-            'posts_count':self.posts.count(),
-            'followed_posts_count':self.followed_posts.count(),
-            'followeds_count':self.followeds.count(),
-            'followers_count':self.followers.count(),
+            'posts_count': self.posts.count(),
+            'followed_posts_count': self.followed_posts.count(),
+            'followeds_count': self.followeds.count(),
+            'followers_count': self.followers.count(),
+            'comments_count': self.comments.count(),
             '_links': {
                 'self': url_for('api.get_user', id=self.id),
                 'avatar': self.avatar(128),
                 'followeds': url_for('api.get_followeds', id=self.id),
-                'followers': url_for('api.get_followers', id=self.id)
+                'followers': url_for('api.get_followers', id=self.id),
+                'posts': url_for('api.get_user_posts', id=self.id),
+                'followeds_posts': url_for('api.get_user_followeds_posts', id=self.id),
+                'comments': url_for('api.get_user_comments', id=self.id)
             }
         }
         if include_email:
@@ -152,7 +159,8 @@ class User(PaginatedAPIMixin, db.Model):
     def verify_jwt(token):
         try:
             payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-        except (jwt.exceptions.ExpiredSignatureError, jwt.exceptions.InvalidSignatureError, jwt.exceptions.DecodeError) as e:
+        except (
+        jwt.exceptions.ExpiredSignatureError, jwt.exceptions.InvalidSignatureError, jwt.exceptions.DecodeError) as e:
             # token过期，被修改都会失效
             return None
         return User.query.get(payload.get('user_id'))
@@ -166,7 +174,7 @@ class User(PaginatedAPIMixin, db.Model):
         self.last_seen = datetime.utcnow()
         db.session.add(self)
 
-    #关注
+    # 关注
     def is_following(self, user):
         """
         判断当前用户是否关注了user这个用户对象，如果关注了，下面表达式左边是1，否则是0
@@ -190,12 +198,12 @@ class User(PaginatedAPIMixin, db.Model):
         :return:
         """
         followed = Post.query.join(followers,
-                                   (followers.c.followed_id == Post.author_id)).filter(followers.c.follower_id == self.id)
+                                   (followers.c.followed_id == Post.author_id)).filter(
+            followers.c.follower_id == self.id)
         # 包含当前用户自己的博客列表
         # own = Post.query.filter_by(user_id=self.id)
         # return followed.union(own).order_by(Post.timestamp.desc())
         return followed.order_by(Post.timestamp.desc())
-
 
 
 class Post(PaginatedAPIMixin, db.Model):
@@ -213,6 +221,9 @@ class Post(PaginatedAPIMixin, db.Model):
 
     # author = db.relationship('User', backref='posts')
 
+    # 评论  一对多
+    comments = db.relationship('Comment', backref='post', lazy='dynamic', cascade='all, delete-orphan')
+
     def __repr__(self):
         return '<Post {}>'.format(self.title)
 
@@ -225,9 +236,11 @@ class Post(PaginatedAPIMixin, db.Model):
             'timestamp': self.timestamp,
             'views': self.views,
             'author': self.author.to_dict(),
+            'comments_count': self.comments.count(),
             '_links': {
                 'self': url_for('api.get_post', id=self.id),
-                'author_url': url_for('api.get_user', id=self.author_id)
+                'author_url': url_for('api.get_user', id=self.author_id),
+                'comments': url_for('api.get_post_comments', id=self.id)
             }
         }
         return data
@@ -248,3 +261,40 @@ class Post(PaginatedAPIMixin, db.Model):
 
 
 db.event.listen(Post.body, 'set', Post.on_changed_body)  # body 字段有变化时，执行 on_changed_body() 方法
+
+
+class Comment(PaginatedAPIMixin, db.Model):
+    """
+    评论model
+    """
+    __tablename__ = 'comments'
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    disabled = db.Column(db.Boolean, default=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
+
+    def __repr__(self):
+        return '<Comment {}>'.format(self.id)
+
+    def to_dict(self):
+        data = {
+            'id': self.id,
+            'body': self.body,
+            'timestamp': self.timestamp,
+            'disabled': self.disabled,
+            'author': self.author.to_dict(),
+            'post': self.post.to_dict(),
+            '_links': {
+                'self': url_for('api.get_comment', id=self.id),
+                'author_url': url_for('api.get_user', id=self.author_id),
+                'post_url': url_for('api.get_post', id=self.post_id)
+            }
+        }
+        return data
+
+    def from_dict(self, data):
+        for field in ['body', 'disabled']:
+            if field in data:
+                setattr(self, field, data[field])
