@@ -26,11 +26,11 @@ def create_post():
         return bad_request('You must post JSON data.')
 
     message = {}
-    if 'title' not in data or not data.get('title'):
+    if 'title' not in data or not data.get('title').strip():
         message['title'] = 'Title is required.'
     elif len(data.get('title')) > 255:
         message['title'] = 'Title must less than 255 characters'
-    if 'body' not in data or not data.get('body'):
+    if 'body' not in data or not data.get('body').strip():
         message['body'] = 'Body is required.'
     if message:
         return bad_request(message)
@@ -106,11 +106,11 @@ def update_post(id):
     if not data:
         return bad_request('You must post JSON data.')
     message = {}
-    if 'title' not in data or not data.get('title'):
+    if 'title' not in data or not data.get('title').strip():
         message['title'] = 'Title is required.'
     elif len(data.get('title')) > 255:
         message['title'] = 'Title must less than 255 characters.'
-    if 'body' not in data or not data.get('body'):
+    if 'body' not in data or not data.get('body').strip():
         message['body'] = 'Body is required.'
     if message:
         return bad_request(message)
@@ -143,7 +143,7 @@ def delete_post(id):
 @bp.route('/posts/<int:id>/comments/', methods=['GET'])
 def get_post_comments(id):
     """
-    返回当前文章下面的所有评论列表
+    返回当前文章下面的一级评论
     :param id:
     :return:
     """
@@ -151,6 +151,15 @@ def get_post_comments(id):
     page = request.args.get('page', 1, type=int)
     per_page = min(
         request.args.get('per_page', current_app.config['COMMENTS_PER_PAGE'], type=int), 100)
+    #一级评论
     data = Comment.to_collection_dict(
-        post.comments.order_by(Comment.timestamp.desc()), page, per_page, 'api.get_post_comments', id=id)
+        post.comments.filter(Comment.parent==None).order_by(Comment.timestamp.desc()), page, per_page, 'api.get_post_comments', id=id)
+
+    #子孙评论
+    for item in data['items']:
+        comment = Comment.query.get(item['id'])
+        descendants = [child.to_dict() for child in comment.get_descendants()]
+        #按timestamp排序一个字典列表
+        from operator import itemgetter
+        item['descendants'] = sorted(descendants, key=itemgetter('timestamp'))
     return jsonify(data)

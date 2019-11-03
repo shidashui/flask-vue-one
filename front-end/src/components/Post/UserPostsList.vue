@@ -12,17 +12,17 @@
           </div>
           <div class="modal-body">
 
-            <form @submit.prevent="onSubmitUpdate" @reset.prevent="onResetUpdate" id="editForm">
-              <div class="form-group" v-bind:class="{'u-has-error-v1': editForm.titleError}">
-                <input type="text" v-model="editForm.title" class="form-control" id="editForm_title" placeholder="标题">
-                <small class="form-control-feedback" v-show="editForm.titleError">{{ editForm.titleError }}</small>
+            <form id="editPostForm" @submit.prevent="onSubmitUpdatePost" @reset.prevent="onResetUpdatePost">
+              <div class="form-group" v-bind:class="{'u-has-error-v1': editPostForm.titleError}">
+                <input type="text" v-model="editPostForm.title" class="form-control" id="editPostFormTitle" placeholder="标题">
+                <small class="form-control-feedback" v-show="editPostForm.titleError">{{ editPostForm.titleError }}</small>
               </div>
               <div class="form-group">
-                <input type="text" v-model="editForm.summary" class="form-control" id="editForm_summary" placeholder="摘要">
+                <input type="text" v-model="editPostForm.summary" class="form-control" id="editPostFormSummary" placeholder="摘要">
               </div>
               <div class="form-group">
-                <textarea v-model="editForm.body" class="form-control" id="editForm_body" rows="5" placeholder=" 内容"></textarea>
-                <small class="form-control-feedback" v-show="editForm.bodyError">{{ editForm.bodyError }}</small>
+                <textarea v-model="editPostForm.body" class="form-control" id="editPostFormBody" rows="5" placeholder=" 内容"></textarea>
+                <small class="form-control-feedback" v-show="editPostForm.bodyError">{{ editPostForm.bodyError }}</small>
               </div>
               <button type="reset" class="btn btn-secondary">Cancel</button>
               <button type="submit" class="btn btn-primary">Update</button>
@@ -107,7 +107,7 @@
           return{
             user: '',
             posts: '',
-            editForm:{
+            editPostForm:{
               title:'',
               summary:'',
               body:'',
@@ -153,56 +153,56 @@
         },
 
         onEditPost (post) {
-          // 不要使用对象引用赋值： this.editForm = post
-          // 这样是同一个 post 对象，用户在 editForm 中的操作会双向绑定到该 post 上， 你会看到 modal 下面的博客也在变
-          // 如果用户修改了一些数据，但是点了 cancel，你就必须在 onResetUpdate() 中重新加载一次博客列表，不然用户会看到修改后但未提交的不对称信息
-          this.editForm = Object.assign({}, post)
+          // 不要使用对象引用赋值： this.editPostForm = post
+          // 这样是同一个 post 对象，用户在 editPostForm 中的操作会双向绑定到该 post 上， 你会看到 modal 下面的博客也在变
+          // 如果用户修改了一些数据，但是点了 cancel，你就必须在 onResetUpdatePost() 中重新加载一次博客列表，不然用户会看到修改后但未提交的不对称信息
+          this.editPostForm = Object.assign({}, post)
         },
 
-        onSubmitUpdate () {
-          this.editForm.errors = 0  // 重置
+        onSubmitUpdatePost () {
+          this.editPostForm.errors = 0  // 重置
           // 每次提交前先移除错误，不然错误就会累加
-          $('#editForm .form-control-feedback').remove()
-          $('#editForm .form-group.u-has-error-v1').removeClass('u-has-error-v1')
-          if (!this.editForm.title) {
-            this.editForm.errors++
-            this.editForm.titleError = 'Title is required.'
+          $('#editPostForm .form-control-feedback').remove()
+          $('#editPostForm .form-group.u-has-error-v1').removeClass('u-has-error-v1')
+          if (!this.editPostForm.title) {
+            this.editPostForm.errors++
+            this.editPostForm.titleError = 'Title is required.'
             // boostrap4 modal依赖jQuery，不兼容 vue.js 的双向绑定。所以要手动添加警示样式和错误提示
-            $('#editForm_title').closest('.form-group').addClass('u-has-error-v1')  // Bootstrap 4
-            $('#editForm_title').after('<small class="form-control-feedback">' + this.editForm.titleError + '</small>')
+            $('#editPostFormTitle').closest('.form-group').addClass('u-has-error-v1')  // Bootstrap 4
+            $('#editPostFormTitle').after('<small class="form-control-feedback">' + this.editPostForm.titleError + '</small>')
           } else {
-            this.editForm.titleError = null
+            this.editPostForm.titleError = null
           }
-          if (!this.editForm.body) {
-            this.editForm.errors++
-            this.editForm.bodyError = 'Body is required.'
+          if (!this.editPostForm.body) {
+            this.editPostForm.errors++
+            this.editPostForm.bodyError = 'Body is required.'
             // boostrap4 modal依赖jQuery，不兼容 vue.js 的双向绑定。所以要手动添加警示样式和错误提示
             // 给 bootstrap-markdown 编辑器内容添加警示样式，而不是添加到 #post_body 上
-            $('#editForm .md-editor').closest('.form-group').addClass('u-has-error-v1')  // Bootstrap 4
-            $('#editForm .md-editor').after('<small class="form-control-feedback">' + this.editForm.bodyError + '</small>')
+            $('#editPostForm .md-editor').closest('.form-group').addClass('u-has-error-v1')  // Bootstrap 4
+            $('#editPostForm .md-editor').after('<small class="form-control-feedback">' + this.editPostForm.bodyError + '</small>')
           } else {
-            this.editForm.bodyError = null
+            this.editPostForm.bodyError = null
           }
-          if (this.editForm.errors > 0) {
+          if (this.editPostForm.errors > 0) {
             // 表单验证没通过时，不继续往下执行，即不会通过 axios 调用后端API
             return false
           }
           // 先隐藏 Modal
-          $('#updatePostModal').modal('hide')
-          const path = `/api/posts/${this.editForm.id}`
+          $('#editPostForm').modal('hide')
+          const path = `/api/posts/${this.editPostForm.id}`
           const payload = {
-            title: this.editForm.title,
-            summary: this.editForm.summary,
-            body: this.editForm.body
+            title: this.editPostForm.title,
+            summary: this.editPostForm.summary,
+            body: this.editPostForm.body
           }
           this.$axios.put(path, payload)
             .then((response) => {
               // handle success
               this.getUserPosts(this.$route.params.id)
               this.$toasted.success('Successed update the post.', { icon: 'fingerprint' })
-              this.editForm.title = '',
-                this.editForm.summary = '',
-                this.editForm.body = ''
+              this.editPostForm.title = '',
+                this.editPostForm.summary = '',
+                this.editPostForm.body = ''
             })
             .catch((error) => {
               // handle error
@@ -210,12 +210,12 @@
             })
         },
 
-        onResetUpdate () {
+        onResetUpdatePost () {
           // 先移除错误
-          $('#editForm .form-control-feedback').remove()
-          $('#editForm .form-group.u-has-error-v1').removeClass('u-has-error-v1')
+          $('#editPostForm .form-control-feedback').remove()
+          $('#editPostForm .form-group.u-has-error-v1').removeClass('u-has-error-v1')
           // 再隐藏 Modal
-          $('#updatePostModal').modal('hide')
+          $('#editPostModal').modal('hide')
           // this.getUserPosts(this.$route.params.id)
           this.$toasted.info('Cancelled, the post is not update.', { icon: 'fingerprint' })
         },
@@ -255,7 +255,7 @@
         this.getUserPosts(user_id)
         // 初始化 bootstrap-markdown 插件
         $(document).ready(function() {
-          $("#editForm_body").markdown({
+          $("#editPostFormBody").markdown({
             autofocus:false,
             savable:false,
             iconlibrary: 'fa',  // 使用Font Awesome图标
@@ -270,7 +270,7 @@
       this.getUserPosts(to.params.id)
       // 初始化 bootstrap-markdown 插件
       $(document).ready(function() {
-        $("#editForm_body").markdown({
+        $("#editPostFormBody").markdown({
           autofocus:false,
           savable:false,
           iconlibrary: 'fa',  // 使用Font Awesome图标

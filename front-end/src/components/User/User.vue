@@ -99,18 +99,18 @@
          <!--           end panel header-->
        </div>
 
-       <form v-if="sharedState.is_authenticated && $route.params.id == sharedState.user_id" @submit.prevent="onSubmitAdd" class="g-mb-40">
+       <form id="addPostForm" v-if="sharedState.is_authenticated && $route.params.id == sharedState.user_id" @submit.prevent="onSubmitAddPost" class="g-mb-40">
          <div class="form-group" v-bind:class="{'u-has-error-v1': postForm.titleError}">
-           <input typeof="text" v-model="postForm.title" class="form-control" id="post_title" placeholder="标题">
+           <input type="text" v-model="postForm.title" class="form-control" id="postFormTitle" placeholder="标题">
            <small class="form-control-feedback" v-show="postForm.titleError">{{postForm.titleError}}</small>
          </div>
 
          <div class="form-group">
-           <input type="text" v-model="postForm.summary" class="form-control" id="post_summary" placeholder="摘要">
+           <input type="text" v-model="postForm.summary" class="form-control" id="postFormSummary" placeholder="摘要">
          </div>
 
          <div class="form-group">
-           <textarea v-model="postForm.body" class="form-control" id="postform_body" rows="5" placeholder="内容"></textarea>
+           <textarea v-model="postForm.body" class="form-control" id="postFormBody" rows="5" placeholder="内容"></textarea>
            <small class="form-control-feedback" v-show="postForm.bodyError">{{postForm.bodyError}}</small>
          </div>
 
@@ -145,7 +145,7 @@
       },
       computed:{
         isUserOverView: function () {
-          const tabs = ['UserFollowers', 'UserFollowing', 'UserPostsList', 'UserFollowedPostsList']
+          const tabs = ['UserFollowers', 'UserFollowing', 'UserPostsList', 'UserFollowedPostsList', 'UserCommentsList']
           if (tabs.indexOf(this.$route.name) == -1){
             return 'active'
           } else {
@@ -230,7 +230,7 @@
             })
         },
 
-        onSubmitAdd(e){
+        onSubmitAddPost (e){
             this.postForm.errors = 0
 
           if(!this.postForm.title){
@@ -279,7 +279,7 @@
         this.getUser(user_id)
         // 初始化 bootstrap-markdown 插件
         $(document).ready(function() {
-          $("#postform_body").markdown({
+          $("#postFormBody").markdown({
             autofocus:false,
             savable:false,
             iconlibrary: 'fa',  // 使用Font Awesome图标
@@ -296,7 +296,7 @@
         next()
         this.getUser(to.params.id)
         $(document).ready(function() {
-          $("#postform_body").markdown({
+          $("#postFormBody").markdown({
             autofocus:false,
             savable:false,
             iconlibrary: 'fa',  // 使用Font Awesome图标

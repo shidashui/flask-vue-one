@@ -33,11 +33,19 @@ class PaginatedAPIMixin(object):
         }
         return data
 
-
+#粉丝关注他人
 followers = db.Table(
     'followers',
     db.Column('follower_id', db.Integer, db.ForeignKey('users.id')),  # 粉丝
     db.Column('followed_id', db.Integer, db.ForeignKey('users.id')),  # 大神
+    db.Column('timestamp', db.DateTime, default=datetime.utcnow)
+)
+
+#评论点赞
+comments_likes = db.Table(
+    'comments_likes',
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
+    db.Column('comment_id', db.Integer, db.ForeignKey('comments.id')),
     db.Column('timestamp', db.DateTime, default=datetime.utcnow)
 )
 
@@ -235,7 +243,12 @@ class Post(PaginatedAPIMixin, db.Model):
             'body': self.body,
             'timestamp': self.timestamp,
             'views': self.views,
-            'author': self.author.to_dict(),
+            'author': {
+                'id': self.author.id,
+                'username': self.author.username,
+                'name': self.author.name,
+                'avatar': self.author.avatar(128)
+            },
             'comments_count': self.comments.count(),
             '_links': {
                 'self': url_for('api.get_post', id=self.id),
@@ -246,7 +259,7 @@ class Post(PaginatedAPIMixin, db.Model):
         return data
 
     def from_dict(self, data):
-        for field in ['title', 'summary', 'body']:
+        for field in ['title', 'summary', 'body', 'timestamp', 'views']:
             if field in data:
                 setattr(self, field, data[field])
 
@@ -271,12 +284,45 @@ class Comment(PaginatedAPIMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
-    disabled = db.Column(db.Boolean, default=False)
+    disabled = db.Column(db.Boolean, default=False)     #屏蔽显示
+    mark_read = db.Column(db.Boolean, default=False)     #是否已读
+    #点赞，多对多
+    likers = db.relationship('User', secondary=comments_likes, backref=db.backref('liked_comments', lazy='dynamic'))
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
+    #自引用的多级评论实现
+    parent_id = db.Column(db.Integer, db.ForeignKey('comments.id', ondelete='CASCADE'))
+    # 级联删除的 cascade 必须定义在 "多" 的那一侧，所以不能这样定义: parent = db.relationship('Comment', backref='children', remote_side=[id], cascade='all, delete-orphan')
+    parent = db.relationship('Comment', backref=db.backref('children', cascade='all, delete-orphan'), remote_side=[id])
 
     def __repr__(self):
         return '<Comment {}>'.format(self.id)
+
+    def get_descendants(self):
+        """获取一级评论的子孙"""
+        data = set()
+
+        def descendants(comment):
+            if comment.children:
+                data.update(comment.children)
+                for child in comment.children:
+                    descendants(child)
+        descendants(self)
+        return data
+
+    def is_liked_by(self, user):
+        """判断用户user是否已经对该评论点赞"""
+        return user in self.likers
+
+    def liked_by(self, user):
+        """点赞"""
+        if not self.is_liked_by(user):
+            self.likers.append(user)
+
+    def unliked_by(self, user):
+        """取消点赞"""
+        if self.is_liked_by(user):
+            self.likers.remove(user)
 
     def to_dict(self):
         data = {
@@ -284,17 +330,31 @@ class Comment(PaginatedAPIMixin, db.Model):
             'body': self.body,
             'timestamp': self.timestamp,
             'disabled': self.disabled,
-            'author': self.author.to_dict(),
-            'post': self.post.to_dict(),
+            'mark_read': self.mark_read,
+            'likers_id': [user.id for user in self.likers],
+            'author': {
+                'id': self.author.id,
+                'username': self.author.username,
+                'name': self.author.name,
+                'avatar': self.author.avatar(128)
+            },
+            'post': {
+                'id': self.post.id,
+                'title': self.post.title,
+                'author_id': self.post.author.id
+            },
+            'parent_id': self.parent.id if self.parent else None,
             '_links': {
                 'self': url_for('api.get_comment', id=self.id),
                 'author_url': url_for('api.get_user', id=self.author_id),
-                'post_url': url_for('api.get_post', id=self.post_id)
+                'post_url': url_for('api.get_post', id=self.post_id),
+                'parent_url': url_for('api.get_commet', id=self.parent.id) if self.parent else None,
+                'children_url': [url_for('api.get_comment', id=child.id) for child in self.children] if self.children else None
             }
         }
         return data
 
     def from_dict(self, data):
-        for field in ['body', 'disabled']:
+        for field in ['body', 'disabled', 'timestamp', 'mark_read', 'author_id', 'post_id', 'parent_id']:
             if field in data:
                 setattr(self, field, data[field])

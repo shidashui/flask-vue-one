@@ -36,6 +36,7 @@ const router = new Router({
         requiresAuth:true
       }
     },
+    // 博客文章详情页
     {
       path:'/post/:id',
       name:'PostDetail',

@@ -98,3 +98,38 @@ def delete_comment(id):
     db.session.delete(comment)
     db.session.commit()
     return '', 204
+
+
+
+###
+# 评论被点赞或被取消点赞
+###
+@bp.route('/comments/<int:id>/like', methods=['GET'])
+@token_auth.login_required
+def like_comment(id):
+    '''
+    点赞评论
+    :param id:
+    :return:
+    '''
+    comment = Comment.query.get_or_404(id)
+    comment.liked_by(g.current_user)
+    db.session.add(comment)
+    db.session.commit()
+    return jsonify({
+        'status': 'success',
+        'message': 'You are not liking comment [id: %d].' % id
+    })
+
+@bp.route('/comments/<int:id>/unlike', methods=['GET'])
+@token_auth.login_required
+def unlike_comment(id):
+    '''取消点赞评论'''
+    comment = Comment.query.get_or_404(id)
+    comment.unliked_by(g.current_user)
+    db.session.add(comment)
+    db.session.commit()
+    return jsonify({
+        'status': 'success',
+        'message': 'You are not liking comment [ id: %d ] anymore.' % id
+    })
