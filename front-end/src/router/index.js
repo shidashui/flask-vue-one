@@ -1,24 +1,26 @@
 import Vue from 'vue'
 import Router from 'vue-router'
+// 测试与后端连通性
 import Ping from '@/components/Ping'
+// 首页
 import Home from "../components/Home";
 // 用户认证：注册与登录
-import Login from "../components/User/Auth/Login";
-import Register from "../components/User/Auth/Register";
+import Login from "../components/Auth/Login";
+import Register from "../components/Auth/Register";
 //用户个人主页
-import User from "../components/User/User";
-import Overview from "../components/User/Overview";
-import Followers from "../components/User/Followers";
-import Following from "../components/User/Following";
-import UserPostsList from "../components/Post/UserPostsList";
-import UserFollowedsPostsList from "../components/Post/UserFollowedsPostsList";
+import User from "../components/Profile/User";
+import Overview from "../components/Profile/Overview";
+import Followers from "../components/Profile/Followers";
+import Following from "../components/Profile/Following";
+import UserPostsList from "../components/Profile/Posts";
+import UserFollowedsPostsList from "../components/Resources/PostsResource";
 //用户个人设置
-import Settings from "../components/User/Settings/Settings";
-import Profile from "../components/User/Settings/Profile";
-import Account from "../components/User/Settings/Account";
-import Email from "../components/User/Settings/Email";
+import Settings from "../components/Settings/Settings";
+import Profile from "../components/Settings/Profile";
+import Account from "../components/Settings/Account";
+import Email from "../components/Settings/Email";
 //博客详情页
-import PostDetail from "../components/Post/PostDetail";
+import PostDetail from "../components/PostDetail";
 import UserCommentsList from "../components/Comment/UserCommentsList";
 
 

@@ -101,7 +101,7 @@
   import Pagination from "../Base/Pagination";
 
   export default {
-        name: "UserPostsList",
+        name: "Posts",
     components: {Pagination, Post},
     data(){
           return{

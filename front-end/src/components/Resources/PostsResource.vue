@@ -100,7 +100,7 @@
   import '../../assets/bootstrap-markdown/js/bootstrap-markdown.zh.js'
   import '../../assets/bootstrap-markdown/js/marked.js'
   export default {
-    name: 'UserFollowedsPostsList',  // this is the name of the component
+    name: 'PostsResource',  // this is the name of the component
     components: {
       Post,
       Pagination

@@ -348,7 +348,7 @@ class Comment(PaginatedAPIMixin, db.Model):
                 'self': url_for('api.get_comment', id=self.id),
                 'author_url': url_for('api.get_user', id=self.author_id),
                 'post_url': url_for('api.get_post', id=self.post_id),
-                'parent_url': url_for('api.get_commet', id=self.parent.id) if self.parent else None,
+                'parent_url': url_for('api.get_comment', id=self.parent.id) if self.parent else None,
                 'children_url': [url_for('api.get_comment', id=child.id) for child in self.children] if self.children else None
             }
         }

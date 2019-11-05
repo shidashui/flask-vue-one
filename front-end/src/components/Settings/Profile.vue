@@ -23,7 +23,7 @@
 </template>
 
 <script>
-  import store from '../../../store'
+  import store from '../../store'
 
     export default {
         name: "Profile",
@@ -68,6 +68,7 @@
             .catch((error)=>{
               //handle error
               console.log(error.response.data)
+              this.$toasted.error(error.response.data.message, { icon: 'fingerprint' })
             })
         },
       },

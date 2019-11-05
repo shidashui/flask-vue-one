@@ -116,6 +116,7 @@
           .catch((error) => {
             // handle error
             console.error(error)
+            this.$toasted.success(response.data.message, { icon: 'fingerprint' })
           })
       },
       onUnfollowUser (followed) {
@@ -128,6 +129,7 @@
           .catch((error) => {
             // handle error
             console.error(error)
+            this.$toasted.success(response.data.message, { icon: 'fingerprint' })
           })
       }
     },

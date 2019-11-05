@@ -37,7 +37,7 @@
 <script>
   // import axios from 'axios'
   // import Alert from './Alert'
-  import store from '../../../store'
+  import store from '../../store'
 
     export default {
         name: "Login",

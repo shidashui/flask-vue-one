@@ -92,7 +92,7 @@
       </div>
 
       <!-- pagination -->
-      <div v-if="posts">
+      <div v-if="posts && posts._meta.total_pages > 1">
         <pagination
           v-bind:cur-page="posts._meta.page"
           v-bind:per-page="posts._meta.per_page"
@@ -158,6 +158,7 @@
             this.$axios.get(path)
               .then((response)=>{
                 //handle success
+
                 this.posts = response.data
               })
               .catch((error)=>{
@@ -207,6 +208,7 @@
             })
             .catch((error)=>{
               console.log(error.response.data)
+              this.$toasted.error(error.response.data.message, { icon: 'fingerprint' })
             })
         },
 
@@ -268,6 +270,7 @@
             })
             .catch((error)=>{
               console.log(error.response.data)
+              this.$toasted.error(error.response.data.message, { icon: 'fingerprint' })
             })
         },
 
@@ -303,6 +306,7 @@
                 .catch((error) => {
                   // handle error
                   console.log(error.response.data)
+                  this.$toasted.error(error.response.data.message, { icon: 'fingerprint' })
                 })
             } else {
               this.$swal('Cancelled', 'The post is safe :)', 'error')
