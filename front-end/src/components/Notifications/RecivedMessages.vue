@@ -1,5 +1,7 @@
 <template>
-
+  <div>
+    全部私信
+  </div>
 </template>
 
 <script>

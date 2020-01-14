@@ -39,13 +39,17 @@
       <!-- Panel Header -->
       <div class="card-header d-flex align-items-center justify-content-between g-bg-gray-light-v5 border-0 g-mb-15">
         <h3 class="h6 mb-0">
-          <i class="icon-bubbles g-pos-rel g-top-1 g-mr-5"></i> Posts of {{ user.name || user.username }} 's followeds <small v-if="posts">(共 {{ posts._meta.total_items }} 篇, {{ posts._meta.total_pages }} 页)</small>
+          <i class="icon-bubbles g-pos-rel g-top-1 g-mr-5"></i> Your Posts <small v-if="posts">(共 {{ posts._meta.total_items }} 篇, {{ posts._meta.total_pages }} 页)</small>
         </h3>
         <div class="dropdown g-mb-10 g-mb-0--md">
           <span class="d-block g-color-primary--hover g-cursor-pointer g-mr-minus-5 g-pa-5" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             <i class="icon-options-vertical g-pos-rel g-top-1"></i>
           </span>
           <div class="dropdown-menu dropdown-menu-right rounded-0 g-mt-10">
+            <router-link v-bind:to="{ name: 'FollowingPostsResource' }" class="dropdown-item g-px-10">
+              <i class="icon-plus g-font-size-12 g-color-gray-dark-v5 g-mr-5"></i> Posts of following
+            </router-link>
+            <div class="dropdown-divider"></div>
             <router-link v-bind:to="{ path: $route.path, query: { page: 1, per_page: 1 }}" class="dropdown-item g-px-10">
               <i class="icon-plus g-font-size-12 g-color-gray-dark-v5 g-mr-5"></i> 每页 1 篇
             </router-link>
@@ -55,13 +59,9 @@
             <router-link v-bind:to="{ path: $route.path, query: { page: 1, per_page: 10 }}" class="dropdown-item g-px-10">
               <i class="icon-wallet g-font-size-12 g-color-gray-dark-v5 g-mr-5"></i> 每页 10 篇
             </router-link>
-
-            <div class="dropdown-divider"></div>
-
             <router-link v-bind:to="{ path: $route.path, query: { page: 1, per_page: 20 }}" class="dropdown-item g-px-10">
               <i class="icon-fire g-font-size-12 g-color-gray-dark-v5 g-mr-5"></i> 每页 20 篇
             </router-link>
-
           </div>
         </div>
       </div>
@@ -93,6 +93,7 @@
 </template>
 
 <script>
+  import store from '../../store'
   import Post from '../Base/Post'
   import Pagination from '../Base/Pagination'
   // bootstrap-markdown 编辑器依赖的 JS 文件，初始化编辑器在组件的 created() 方法中，同时它需要 JQuery 支持哦
@@ -107,6 +108,7 @@
     },
     data () {
       return {
+        sharedState: store.state,
         user: '',
         posts: '',
         editPostForm: {
@@ -132,7 +134,7 @@
             console.error(error)
           })
       },
-      getUserFollowedsPosts (id) {
+      getUserPosts (id) {
         let page = 1
         let per_page = 5
         if (typeof this.$route.query.page != 'undefined') {
@@ -142,7 +144,7 @@
           per_page = this.$route.query.per_page
         }
 
-        const path = `/api/users/${id}/followeds-posts/?page=${page}&per_page=${per_page}`
+        const path = `/api/users/${id}/posts/?page=${page}&per_page=${per_page}`
         this.$axios.get(path)
           .then((response) => {
             // handle success
@@ -198,7 +200,7 @@
         this.$axios.put(path, payload)
           .then((response) => {
             // handle success
-            this.getUserPosts(this.$route.params.id)
+            this.getUserPosts(this.sharedState.user_id)
             this.$toasted.success('Successed update the post.', { icon: 'fingerprint' })
             this.editPostForm.title = '',
               this.editPostForm.summary = '',
@@ -207,6 +209,7 @@
           .catch((error) => {
             // handle error
             console.log(error.response.data)
+            this.$toasted.error(error.response.data.message, { icon: 'fingerprint' })
           })
       },
       onResetUpdatePost  () {
@@ -215,7 +218,7 @@
         $('#editPostForm .form-group.u-has-error-v1').removeClass('u-has-error-v1')
         // 再隐藏 Modal
         $('#editPostModal').modal('hide')
-        // this.getUserPosts(this.$route.params.id)
+        // this.getUserPosts(this.sharedState.user_id)
         this.$toasted.info('Cancelled, the post is not update.', { icon: 'fingerprint' })
       },
       onDeletePost (post) {
@@ -235,11 +238,12 @@
               .then((response) => {
                 // handle success
                 this.$swal('Deleted', 'You successfully deleted this post', 'success')
-                this.getUserPosts(this.$route.params.id)
+                this.getUserPosts(this.sharedState.user_id)
               })
               .catch((error) => {
                 // handle error
                 console.log(error.response.data)
+                this.$toasted.error(error.response.data.message, { icon: 'fingerprint' })
               })
           } else {
             this.$swal('Cancelled', 'The post is safe :)', 'error')
@@ -248,9 +252,9 @@
       }
     },
     created () {
-      const user_id = this.$route.params.id
+      const user_id = this.sharedState.user_id
       this.getUser(user_id)
-      this.getUserFollowedsPosts(user_id)
+      this.getUserPosts(user_id)
       // 初始化 bootstrap-markdown 插件
       $(document).ready(function() {
         $("#editPostFormBody").markdown({
@@ -261,11 +265,11 @@
         })
       })
     },
-    // 当 id 变化后重新加载数据
+    // 当路由变化后(比如变更查询参数 page 和 per_page)重新加载数据
     beforeRouteUpdate (to, from, next) {
       next()
-      this.getUser(to.params.id)
-      this.getUserFollowedsPosts(to.params.id)
+      this.getUser(this.sharedState.user_id)
+      this.getUserPosts(this.sharedState.user_id)
       // 初始化 bootstrap-markdown 插件
       $(document).ready(function() {
         $("#editPostFormBody").markdown({

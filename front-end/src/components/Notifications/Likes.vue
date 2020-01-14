@@ -1,5 +1,7 @@
 <template>
-
+  <div>
+    收到的喜欢和赞
+  </div>
 </template>
 
 <script>

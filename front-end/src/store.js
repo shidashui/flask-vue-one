@@ -8,8 +8,11 @@ export default {
     user_name: window.localStorage.getItem('codershui-token') ? JSON.parse(atob(window.localStorage.getItem('codershui-token').split('.')[1])).user_name : '',
     // 用户登录后，就算刷新页面也能再次计算出 user_avatar
     // 后端传 URL 必须先用 base64 编码，所以这里还要多进行一次 atob 解码 base64 字符串
-    user_avatar: window.localStorage.getItem('codershui-token') ? atob(JSON.parse(atob(window.localStorage.getItem('codershui-token').split('.')[1])).user_avatar) : ''
+    user_avatar: window.localStorage.getItem('codershui-token') ? atob(JSON.parse(atob(window.localStorage.getItem('codershui-token').split('.')[1])).user_avatar) : '',
+    // 用户未读消息计数
+    new_messages_count: window.localStorage.getItem('codershui-token') ? JSON.parse(atob(window.localStorage.getItem('codershui-token').split('.')[1])).new_messages_count : 0
   },
+
   //被vue-toasted插件替换
   // setNewAction (){
   //   if (this.debug){console.log('setNewAction triggered')}
@@ -26,6 +29,7 @@ export default {
     this.state.user_id = payload.user_id
     this.state.user_name = payload.user_name
     this.state.user_avatar = atob(payload.user_avatar)
+    this.state.new_messages_count = payload.new_messages_count
   },
   logoutAction(){
     if (this.debug) {console.log('logoutAction triggered')}
@@ -34,5 +38,6 @@ export default {
     this.state.user_id = 0
     this.state.user_name = ''
     this.state.user_avatar = ''
+    this.state.new_messages_count = 0
   }
 }

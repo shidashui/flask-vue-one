@@ -47,6 +47,10 @@
             <i class="icon-options-vertical g-pos-rel g-top-1"></i>
           </span>
           <div class="dropdown-menu dropdown-menu-right rounded-0 g-mt-10">
+            <router-link v-bind:to="{ name: 'UserFollowingPosts' }" class="dropdown-item g-px-10">
+              <i class="icon-plus g-font-size-12 g-color-gray-dark-v5 g-mr-5"></i> Posts of following
+            </router-link>
+            <div class="dropdown-divider"></div>
             <router-link v-bind:to="{ path: $route.path, query: { page: 1, per_page: 1 }}" class="dropdown-item g-px-10">
               <i class="icon-plus g-font-size-12 g-color-gray-dark-v5 g-mr-5"></i> 每页 1 篇
             </router-link>
@@ -56,9 +60,6 @@
             <router-link v-bind:to="{ path: $route.path, query: { page: 1, per_page: 10 }}" class="dropdown-item g-px-10">
               <i class="icon-wallet g-font-size-12 g-color-gray-dark-v5 g-mr-5"></i> 每页 10 篇
             </router-link>
-
-            <div class="dropdown-divider"></div>
-
             <router-link v-bind:to="{ path: $route.path, query: { page: 1, per_page: 20 }}" class="dropdown-item g-px-10">
               <i class="icon-fire g-font-size-12 g-color-gray-dark-v5 g-mr-5"></i> 每页 20 篇
             </router-link>
@@ -207,6 +208,7 @@
             .catch((error) => {
               // handle error
               console.log(error.response.data)
+              this.$toasted.error(error.response.data.message, { icon: 'fingerprint' })
             })
         },
 
@@ -242,6 +244,7 @@
                 .catch((error) => {
                   // handle error
                   console.log(error.response.data)
+                  this.$toasted.error(error.response.data.message, { icon: 'fingerprint' })
                 })
             } else {
               this.$swal('Cancelled', 'The post is safe :)', 'error')
@@ -263,7 +266,7 @@
           })
         })
       },
-    // 当 id 变化后重新加载数据
+    // 当路由变化后重新加载数据
     beforeRouteUpdate (to, from, next) {
       next()
       this.getUser(to.params.id)
