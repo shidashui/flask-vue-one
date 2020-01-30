@@ -344,15 +344,13 @@
 
   // 固定 TOC
   import '../assets/jquery.sticky'
-  import Comment from "./Base/Comment";
   import Pagination from "./Base/Pagination";
 
     export default {
         name: "PostDetail",
       components:{
         Pagination,
-        Comment,
-          VueMarkdown
+        VueMarkdown
       },
       data(){
           return{

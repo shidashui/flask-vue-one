@@ -36,7 +36,7 @@
 
             <ul v-if="sharedState.is_authenticated" class="nav navbar-nav navbar-right">
               <li class="nav-item g-mr-20">
-                <router-link v-bind:to="{ path: '/notifications/comments' }" class="nav-link"><i class="icon-education-033 u-line-icon-pro g-color-red g-font-size-16 g-pos-rel g-top-2 g-mr-3"></i> Notifications <span id="new_message_count" class="u-label g-font-size-11 g-bg-aqua g-rounded-20 g-px-10">{{ sharedState.new_messages_count }}</span></router-link>
+                <router-link v-bind:to="{ path: '/notifications/comments' }" class="nav-link"><i class="icon-education-033 u-line-icon-pro g-color-red g-font-size-16 g-pos-rel g-top-2 g-mr-3"></i> Notifications <span id="new_notifications_count" style="visibility: hidden;" class="u-label g-font-size-11 g-bg-aqua g-rounded-20 g-px-10">0</span></router-link>
               </li>
               <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -67,6 +67,7 @@
 
 <script>
   import store from '../../store'
+  // 在 JQuery 中使用 axios 的话需要重新导入，不能使用 main.js 中定义的 Vue 全局属性 this.$axios
   import axios from 'axios'
 
     export default {
@@ -84,24 +85,43 @@
           }
       },
       mounted() {
-          if (this.sharedState.is_authenticated) {
-            const payload = JSON.parse(atob(window.localStorage.getItem('codershui-token').split('.')[1]))
-            const user_id = payload.user_id
-            $(function () {
-              setInterval(function () {
-                const path = `/api/users/${user_id}`
-                axios.get(path)
-                  .then((response) => {
-                    //handle success
-                    $('#new_message_count').text(response.data.new_messages_count)
-                  })
-                  .catch((error) => {
-                    // handle error
-                    console.error(error)
-                  })
-              }, 1000000)
-            })
-          }
+          // 轮询 /api/users/<int:id>/notifications/ 请求用户的新通知
+        $(function () {
+          let since = 0
+          let total_notifications_count = 0 // 总通知数
+          let unread_recived_comments_count = 0 //收到的新评论通知计数
+
+          setInterval(function () {
+            if (window.localStorage.getItem('codershui-token')) {
+              // 如果用户已登陆，才开始请求API
+              const payload = JSON.parse(atob(window.localStorage.getItem('codershui-token').split('.')[1]))
+              const user_id = payload.user_id
+              const path = `/api/users/${user_id}/notifications/?since=${since}`
+              axios.get(path)
+                .then((response) => {
+                  //handle success
+                  // console.log(response)
+                  for (var i=0; i<response.data.length; i++) {
+                    switch (response.data[i].name) {
+                      case 'unread_recived_comments_count':
+                        unread_recived_comments_count = response.data[i].payload
+                        break
+                    }
+                    since = response.data[i].timestamp
+                  }
+
+                  total_notifications_count = unread_recived_comments_count
+                  // 每一次请求之后，根据total_notifications_count 的值来显示或隐藏徽标
+                  $('#new_notifications_count').text(total_notifications_count)
+                  $('#new_notifications_count').css('visibility', total_notifications_count ? 'visible' : 'hidden')
+                })
+                .catch((error) => {
+                  //handle error
+                  console.error(error)
+                })
+            }
+          }, 10000)
+        })
       }
     }
 </script>

@@ -15,7 +15,6 @@ import Overview from "../components/Profile/Overview";
 import Followers from "../components/Profile/Followers";
 import Following from "../components/Profile/Following";
 import Posts from "../components/Profile/Posts";
-import FollowingPosts from "../components/Profile/FollowingPosts";
 //用户个人设置
 import Settings from "../components/Settings/Settings";
 import Profile from "../components/Settings/Profile";
@@ -26,15 +25,13 @@ import Notification from '../components/Settings/Notification'
 import PostDetail from "../components/PostDetail";
 //用户资源
 import Resource from "../components/Resources/Resource";
-import PostsResource from "../components/Resources/PostsResource";
-import FollowingPostsResource from "../components/Resources/FollowingPostsResource";
 import CommentsResource from "../components/Resources/CommentsResource";
 // 用户通知
 import Notifications from "../components/Notifications/Notifications";
 import RecivedComments from "../components/Notifications/RecivedComments";
 import RecivedMessages from "../components/Notifications/RecivedMessages";
-import Follows from "../components/Notifications/Follows";
 import Likes from "../components/Notifications/Likes";
+import FollowingPosts from '../components/Notifications/FollowingPosts'
 
 
 Vue.use(Router)
@@ -118,13 +115,9 @@ const router = new Router({
         // when /user/:id/following is matched
         {path: 'following', name: 'UserFollowing', component:Following},
 
-        // UserPostsList will be rendered inside User's <router-view>
+        // UserPosts will be rendered inside User's <router-view>
         // when /user/:id/posts is matched
         { path: 'posts', name: 'UserPosts', component: Posts },
-
-        // UserFollowedsPostsList will be rendered inside User's <router-view>
-        // when /user/:id/followeds-posts is matched
-        { path: 'following-posts', name: 'UserFollowingPosts', component: FollowingPosts }
       ],
       meta:{
         requiresAuth:true
@@ -150,9 +143,8 @@ const router = new Router({
       path: '/resource',
       component: Resource,
       children: [
-        {path: '', component: PostsResource},
-        {path: 'posts', name: 'PostsResource', component: PostsResource},
-        {path: 'following-posts', name: 'FollowingPostsResource', component: FollowingPostsResource},
+        {path: '', component: Posts},
+        {path: 'posts', name: 'PostsResource', component: Posts},
         {path: 'comments', name: 'CommentsResource', component: CommentsResource}
       ],
       meta: {
@@ -160,15 +152,16 @@ const router = new Router({
       }
     },
     {
-      //通知
+      //用户通知
       path: '/notifications',
       component: Notifications,
       children: [
-        {path: '', component: RecivedComments},
-        {path: 'comments', name: 'RecivedComments', component: RecivedComments},
-        {path: 'messages', name: 'RecivedMessages', component: RecivedMessages},
-        {path: 'follows', name: 'Follows', component: Follows},
-        {path: 'likes', name: 'Likes', component: Likes}
+        { path: '', component: RecivedComments },
+        { path: 'comments', name: 'RecivedComments', component: RecivedComments },
+        { path: 'messages', name: 'RecivedMessages', component: RecivedMessages },
+        { path: 'follows', name: 'Follows', component: Followers },
+        { path: 'likes', name: 'Likes', component: Likes },
+        { path: 'following-posts', name: 'FollowingPosts', component: FollowingPosts }
       ],
       meta: {
         requiresAuth: true
