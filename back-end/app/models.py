@@ -235,14 +235,25 @@ class User(PaginatedAPIMixin, db.Model):
         return n
 
     def new_recived_comments(self):
-        """用户发布的文章下面收到的新评论计数"""
+        '''用户收到的新评论计数
+        包括:
+        1. 用户的所有文章下面新增的评论
+        2. 用户发表的评论(或下面的子孙)被人回复了
+        '''
         last_read_time = self.last_recived_comments_read_time or datetime(1900,1,1)
         # 用户发布的所有文章
         user_posts_ids = [post.id for post in self.posts.all()]
         # 用户收到的所有评论，即评论的 post_id 在 user_posts_ids 集合中，且评论的 author 不是当前用户（即文章的作者）
-        recived_comments = Comment.query.filter(Comment.post_id.in_(user_posts_ids), Comment.author!=self)
+        q1 = set(Comment.query.filter(Comment.post_id.in_(user_posts_ids), Comment.author!=self).all())
+        # 用户发表的评论被人回复了，找到每个用户评论的所有子孙
+        q2 = set()
+        for c in self.comments:
+            q2 = q2 | c.get_descendants()
+        q2 = q2 - set(self.comments.all())# 除去子孙中，用户自己发的(因为是多级评论，用户可能还会在子孙中盖楼)，自己回复的不用通知
+        # 用户收到的总评论集合为 q1 与 q2 的并集
+        recived_comments = q1 | q2
         # 新评论
-        return recived_comments.filter(Comment.timestamp > last_read_time).count()
+        return len([c for c in recived_comments if c.timestamp > last_read_time])
 
     def new_follows(self):
         '''用户的新粉丝计数'''
@@ -366,6 +377,17 @@ class Comment(PaginatedAPIMixin, db.Model):
                 for child in comment.children:
                     descendants(child)
         descendants(self)
+        return data
+
+    def get_ancestors(self):
+        '''获取评论的所有祖先'''
+        data = []
+
+        def ancestors(comment):
+            if comment.parent:
+                data.append(comment.parent)
+                ancestors(comment.parent)
+        ancestors(self)
         return data
 
     def is_liked_by(self, user):
