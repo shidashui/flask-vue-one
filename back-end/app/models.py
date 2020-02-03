@@ -94,6 +94,13 @@ class User(PaginatedAPIMixin, db.Model):
     # 用户通知
     notifications = db.relationship('Notification', backref='user', lazy='dynamic', cascade='all, delete-orphan')
 
+    #用户发送的私信
+    messages_sent = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy='dynamic', cascade='all, delete-orphan')
+    # 用户接受的私信
+    messages_received = db.relationship('Message', foreign_keys='Message.recipient_id', backref='recipient', lazy='dynamic', cascade='all, delete-orphan')
+    # 用户最后一次查看私信的时间
+    last_messages_read_time = db.Column(db.DateTime)
+
     # token
     # token = db.Column(db.String(32), index=True, unique=True)
     # token_expiration = db.Column(db.DateTime)
@@ -282,6 +289,11 @@ class User(PaginatedAPIMixin, db.Model):
         last_read_time = self.last_followeds_posts_read_time or datetime(1900, 1, 1)
         return self.followeds_posts().filter(Post.timestamp > last_read_time).count()
 
+    def new_recived_messages(self):
+        '''用户未读的私信计数'''
+        last_read_time = self.last_messages_read_time or datetime(1900, 1, 1)
+        return Message.query.filter_by(recipient=self).filter(Message.timestamp > last_read_time).count()
+
 
 class Post(PaginatedAPIMixin, db.Model):
     __tablename__ = 'posts'
@@ -469,6 +481,37 @@ class Notification(db.Model):   # 不需要分页
             '_links': {
                 'self': url_for('api.get_notification', id=self.id),
                 'user_url': url_for('api.get_user', id=self.user_id)
+            }
+        }
+        return data
+
+    def from_dict(self, data):
+        for field in ['body', 'timestamp']:
+            if field in data:
+                setattr(self, field, data[field])
+
+class Message(PaginatedAPIMixin, db.Model):
+    __tablename__ = 'messages'
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    recipient_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    def __repr__(self):
+        return '<Message {}>'.format(self.id)
+
+    def to_dict(self):
+        data = {
+            'id': self.id,
+            'body': self.body,
+            'timestamp': self.timestamp,
+            'sender': self.sender.to_dict(),
+            'recipient': self.recipient.to_dict(),
+            '_links': {
+                'self': url_for('api.get_message', id=self.id),
+                'sender_url': url_for('api.get_user', id=self.sender_id),
+                'recipient_url': url_for('api.get_user', id=self.recipient_id)
             }
         }
         return data

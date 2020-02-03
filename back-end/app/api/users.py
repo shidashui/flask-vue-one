@@ -8,7 +8,7 @@ from app.extensions import db
 from app.api import bp
 from app.api.auth import token_auth
 from app.api.errors import bad_request, error_response
-from app.models import User, Post, Comment, Notification, comments_likes
+from app.models import User, Post, Comment, Notification, comments_likes, Message
 
 
 @bp.route('/users', methods=['POST'])
@@ -404,6 +404,110 @@ def get_user_recived_likes(id):
         user.add_notification('unread_likes_count', n)
     db.session.commit()
     return jsonify(records)
+
+@bp.route('/users/<int:id>/messages-recipients/', methods=['GET'])
+@token_auth.login_required
+def get_user_messages_recipients(id):
+    """我给哪些用户发过私信，按用户分组，返回我给各用户最后一次发送的私信
+    即: 我给 (谁) 最后一次 发了 (什么私信)"""
+    user = User.query.get_or_404(id)
+    if g.current_user != user:
+        return error_response(403)
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', current_app.config['MESSAGES_PER_PAGE'], type=int), 100)
+    data = Message.to_collection_dict(
+        user.messages_sent.group_by(Message.recipient_id).order_by(Message.timestamp.desc()), page, per_page, 'api.get_user_messages_recipients', id=id)
+    # 我给每个用户发的私信，他们有没有未读的
+    for item in data['items']:
+        # 发给了谁
+        recipient = User.query.get(item['recipient']['id'])
+        # 总共给他发过多少条
+        item['total_count'] = user.messages_sent.filter_by(recipient_id=item['recipient']['id']).count()
+        # 他最后一次查看收到的私信的时间
+        last_read_time = recipient.last_messages_read_time or datetime(1900, 1, 1)
+        # item是发给他的最后一条， 如果最后一条不是新的，肯定就没有了
+        if item['timestamp'] > last_read_time:
+            item['is_new'] = True
+            # 继续获取发给这个用户的私信有几条是新的
+            item['new_count'] = user.messages_sent.filter_by(recipient_id=item['recipient']['id']).filter(Message.timestamp>last_read_time).count()
+    return jsonify(data)
+
+@bp.route('/users/<int:id>/messages-senders/', methods=['GET'])
+@token_auth.login_required
+def get_user_messages_senders(id):
+    """哪些用户给我发过私信，按用户分组，返回各用户最后一次发送的私信
+    即: (谁) 最后一次 给我发了 (什么私信)"""
+    user = User.query.get_or_404(id)
+    if g.current_user != user:
+        return error_response(403)
+    page = request.args.get('page', 1, type=int)
+    per_page = min(
+        request.args.get(
+            'per_page', current_app.config['MESSAGES_PER_PAGE'], type=int), 100)
+    data = Message.to_collection_dict(
+        user.messages_received.group_by(Message.sender_id).order_by(Message.timestamp.desc()), page, per_page,
+        'api.get_user_messages_senders', id=id)
+    # 这个用户发给我的私信有没有新的
+    last_read_time = user.last_messages_read_time or datetime(1900, 1, 1)
+    new_items = [] # 最后一条是新的
+    not_new_items = [] # 最后一条不是新的
+    for item in data['items']:
+        # item 是他发的最后一条，如果最后一条不是新的，肯定就没有啦
+        if item['timestamp'] > last_read_time:
+            item['is_new'] = True
+            # 继续获取这个用户的私信有几条是新的
+            item['new_count'] = user.messages_received.filter_by(sender_id=item['sender']['id']).filter(Message.timestamp>last_read_time).count()
+            new_items.append(item)
+        else:
+            not_new_items.append(item)
+        # 对那些最后一条是新的按 timestamp 正序排序，不然用户更新 last_messages_read_time 会导致时间靠前的全部被标记已读
+        new_items = sorted(new_items, key=itemgetter('timestamp'))
+        data['items'] = new_items + not_new_items
+    return jsonify(data)
+
+@bp.route('/users/<int:id>/history-messages/', methods=['GET'])
+@token_auth.login_required
+def get_user_history_messages(id):
+    """返回我与某个用户（由查询参数from获取）之间的所有私信记录"""
+    user = User.query.get_or_404(id)
+    if g.current_user != user:
+        return error_response(403)
+    page = request.args.get('page', 1, type=int)
+    per_page = min(
+        request.args.get('per_page', current_app.config['MESSAGES_PER_PAGE'], type=int), 100)
+    from_id = request.args.get('from', type=int)
+    if not from_id: # 必须提供聊天的对方用户的ID
+        return bad_request('You must provide the user id of opposite site')
+    # 对方发给我的
+    q1 = Message.query.filter(Message.sender_id==from_id, Message.recipient_id==id)
+    # 我发给对方的
+    q2 = Message.query.filter(Message.sender_id==id, Message.recipient_id==from_id)
+    # 按时间正序排列构成完整的对话时间线
+    history_messages = q1.union(q2).order_by(Message.timestamp)
+    data = Message.to_collection_dict(history_messages, page, per_page, 'api.get_user_history_messages', id=id)
+    # 现在这一页的 data['items'] 包含对方发给我和我发给对方的
+    # 需要创建一个新列表，只包含对方发给我的，用来查看哪些私信是新的
+    recived_messages = [item for item in data['items'] if item['sender']['id'] != id]
+    sent_messages = [item for item in data['items'] if item['sender']['id'] == id]
+    # 然后，标记哪些私信是新的
+    last_read_time = user.last_messages_read_time or datetime(1900, 1, 1)
+    new_count = 0
+    for item in recived_messages:
+        if item['timestamp'] > last_read_time:
+            item['is_new'] = True
+            new_count += 1
+    if new_count > 0:
+        # 更新 last_messages_read_time 属性值为收到的私信列表最后一条(最近的)的时间
+        user.last_messages_read_time = recived_messages[-1]['timestamp']
+        db.session.commit() # 先提交数据库，这样 user.new_recived_messages() 才会变化
+        # 更新用户的新私信通知的计数
+        user.add_notification('unread_message_count', user.new_recived_messages())
+        db.session.commit()
+    # 最后，重新组合data['items']，因为收到的新私信添加了is_new的标记
+    messages = recived_messages + sent_messages
+    messages.sort(key=data['items'].index)  # 保持 messages 列表元素的顺序跟 data['items'] 一样
+    data['items'] = messages
+    return jsonify(data)
 
 @bp.route('/users/<int:id>/notifications/', methods=['GET'])
 @token_auth.login_required
