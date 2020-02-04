@@ -7,7 +7,7 @@ from app.api.errors import bad_request, error_response
 from app.models import User, Message
 
 
-@bp.route('/message/', methods=['POST'])
+@bp.route('/messages/', methods=['POST'])
 @token_auth.login_required
 def create_message():
     """给其它用户发送私信"""
@@ -16,7 +16,7 @@ def create_message():
         return bad_request('You must post JSON data.')
     if 'body' not in data or not data.get('body'):
         return bad_request('Body is required')
-    if 'recipient_id' not in data or data.get('recipient_id'):
+    if 'recipient_id' not in data or not data.get('recipient_id'):
         return bad_request('Recipient id is required.')
 
     user = User.query.get_or_404(int(data.get('recipient_id')))

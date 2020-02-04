@@ -30,9 +30,7 @@ axios.interceptors.response.use(function (response) {
   return response
 }, function (error) {
   //do something with response error
-  if (typeof error.response == 'undefined') {
-    Vue.toasted.error('无法连接Flask API，请联系管理员', { icon: 'fingerprint' })
-  } else {
+  if (error.response) {
     // 匹配不同响应码
     switch  (error.response.status) {
       case 401:
@@ -63,7 +61,13 @@ axios.interceptors.response.use(function (response) {
         router.back()
         break
     }
+  } else if (error.request) {
+    console.log(error.request)
+    Vue.toasted.error('The request has not been sent to Flask API，because OPTIONS get error', { icon: 'fingerprint' })
+  } else {
+    console.log('Error: ', error.message)
   }
+  console.log(error.config)
   return Promise.reject(error)
 })
 

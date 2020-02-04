@@ -40,7 +40,7 @@
               </li>
               <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                  <img v-bind:src="sharedState.user_avatar"> {{sharedState.user_name}}
+                  <img v-bind:src="sharedState.user_avatar" class="g-brd-around g-brd-gray-light-v3 g-pa-2 rounded-circle rounded mCS_img_loaded"> {{ sharedState.user_name }}
                 </a>
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                   <router-link v-bind:to="{ path: `/user/${sharedState.user_id}` }" class="dropdown-item"><i class="icon-star g-pos-rel g-top-1 g-mr-5"></i> Your profile</router-link>
@@ -90,6 +90,10 @@
           let since = 0
           let total_notifications_count = 0 // 总通知数
           let unread_recived_comments_count = 0 //收到的新评论通知计数
+          let unread_messages_count = 0  // 收到的新私信通知计数
+          let unread_follows_count = 0  // 新粉丝通知计数
+          let unread_likes_count = 0  // 新的喜欢或赞的通知计数
+          let unread_followeds_posts_count = 0  // 用户关注的人的新文章通知计数
 
           setInterval(function () {
             if (window.localStorage.getItem('codershui-token')) {
@@ -106,11 +110,26 @@
                       case 'unread_recived_comments_count':
                         unread_recived_comments_count = response.data[i].payload
                         break
+
+                      case 'unread_messages_count':
+                        unread_messages_count = response.data[i].payload
+                        break
+
+                      case 'unread_follows_count':
+                        unread_follows_count = response.data[i].payload
+                        break
+
+                      case 'unread_likes_count':
+                        unread_likes_count = response.data[i].payload
+                        break
+                      case 'unread_followeds_posts_count':
+                        unread_followeds_posts_count = response.data[i].payload
+                        break
                     }
                     since = response.data[i].timestamp
                   }
 
-                  total_notifications_count = unread_recived_comments_count
+                  total_notifications_count = unread_recived_comments_count + unread_messages_count + unread_follows_count + unread_likes_count + unread_followeds_posts_count
                   // 每一次请求之后，根据total_notifications_count 的值来显示或隐藏徽标
                   $('#new_notifications_count').text(total_notifications_count)
                   $('#new_notifications_count').css('visibility', total_notifications_count ? 'visible' : 'hidden')

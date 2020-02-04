@@ -26,12 +26,17 @@ import PostDetail from "../components/PostDetail";
 //用户资源
 import Resource from "../components/Resources/Resource";
 import CommentsResource from "../components/Resources/CommentsResource";
+import MessagesIndexResource from '../components/Resources/Messages/Index'
+import SentMessagesResource from '../components/Resources/Messages/List'
+import MessagesHistoryResource from '../components/Resources/Messages/History'
 // 用户通知
 import Notifications from "../components/Notifications/Notifications";
 import RecivedComments from "../components/Notifications/RecivedComments";
-import RecivedMessages from "../components/Notifications/RecivedMessages";
 import Likes from "../components/Notifications/Likes";
 import FollowingPosts from '../components/Notifications/FollowingPosts'
+import MessagesIndex from '../components/Notifications/Messages/Index'
+import RecivedMessages from '../components/Notifications/Messages/List'
+import MessagesHistory from '../components/Notifications/Messages/History'
 
 
 Vue.use(Router)
@@ -51,7 +56,7 @@ const scrollBehavior = (to, from, savedPosition) => {
     if (to.hash) {
       //重要：延迟等待dom生成，不然跳转到对应的锚点时会提示找不到dom
       setTimeout(() => {
-        VueScrollTo.scrollTo(to.hash, 500)
+        VueScrollTo.scrollTo(to.hash, 200)
       }, 1000)
       position.selector = to.hash
     }
@@ -145,7 +150,17 @@ const router = new Router({
       children: [
         {path: '', component: Posts},
         {path: 'posts', name: 'PostsResource', component: Posts},
-        {path: 'comments', name: 'CommentsResource', component: CommentsResource}
+        {path: 'comments', name: 'CommentsResource', component: CommentsResource},
+        {
+          path: 'messages',
+          component: MessagesIndexResource,
+          children: [
+            // 默认匹配，你给哪些人发送过私信
+            { path: '', name: 'MessagesIndexResource', component: SentMessagesResource },
+            // 与某个用户之间的全部历史对话记录
+            { path: 'history', name: 'MessagesHistoryResource', component: MessagesHistoryResource }
+          ]
+        }
       ],
       meta: {
         requiresAuth: true
@@ -158,7 +173,16 @@ const router = new Router({
       children: [
         { path: '', component: RecivedComments },
         { path: 'comments', name: 'RecivedComments', component: RecivedComments },
-        { path: 'messages', name: 'RecivedMessages', component: RecivedMessages },
+        {
+          path: 'messages',
+          component: MessagesIndex,
+          children: [
+            // 默认匹配，哪些人给你发送过私信
+            { path: '', name: 'MessagesIndex', component: RecivedMessages },
+            // 与某个用户之间的全部历史对话记录
+            { path: 'history', name: 'MessagesHistory', component: MessagesHistory }
+          ]
+        },
         { path: 'follows', name: 'Follows', component: Followers },
         { path: 'likes', name: 'Likes', component: Likes },
         { path: 'following-posts', name: 'FollowingPosts', component: FollowingPosts }

@@ -1,5 +1,5 @@
 from app import create_app, db
-from app.models import User, Post, Comment, Notification
+from app.models import User, Post, Comment, Notification, Message
 from config import Config
 
 app = create_app(Config)
@@ -14,4 +14,4 @@ def hello_world():
 #添加flask shell上下文
 @app.shell_context_processor
 def make_shell_context():
-    return {'db':db, 'User':User,'post':Post, 'Comment': Comment, 'Notification': Notification}
+    return {'db':db, 'User':User,'post':Post, 'Comment': Comment, 'Notification': Notification, 'Message': Message}

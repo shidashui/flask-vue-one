@@ -259,7 +259,7 @@ class User(PaginatedAPIMixin, db.Model):
         q2 = q2 - set(self.comments.all())# 除去子孙中，用户自己发的(因为是多级评论，用户可能还会在子孙中盖楼)，自己回复的不用通知
         # 用户收到的总评论集合为 q1 与 q2 的并集
         recived_comments = q1 | q2
-        # 新评论
+        # 最后，再过滤掉 last_read_time 之前的评论
         return len([c for c in recived_comments if c.timestamp > last_read_time])
 
     def new_follows(self):
@@ -277,11 +277,13 @@ class User(PaginatedAPIMixin, db.Model):
         for c in comments:
             # 获取点赞时间
             for u in c.likers:
-                res = db.engine.execute("select * from comments_likes where user_id={} and comment_id={}".format(u.id, c.id))
-                timestamp = datetime.strptime(list(res)[0][2], '%Y-%m-%d %H:%M:%S.%f')
-                # 判断本条点赞记录是否为新的
-                if timestamp > last_read_time:
-                    new_likes_count += 1
+                if u != self:  # 用户自己点赞自己的评论不需要被通知
+                    res = db.engine.execute(
+                        "select * from comments_likes where user_id={} and comment_id={}".format(u.id, c.id))
+                    timestamp = datetime.strptime(list(res)[0][2], '%Y-%m-%d %H:%M:%S.%f')
+                    # 判断本条点赞记录是否为新的
+                    if timestamp > last_read_time:
+                        new_likes_count += 1
         return new_likes_count
 
     def new_followeds_posts(self):
