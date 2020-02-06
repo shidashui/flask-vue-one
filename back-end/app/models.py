@@ -59,6 +59,14 @@ blacklist = db.Table(
     db.Column('timestamp', db.DateTime, default=datetime.utcnow)
 )
 
+# 喜欢文章
+posts_likes = db.Table(
+    'posts_likes',
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
+    db.Column('post_id', db.Integer, db.ForeignKey('posts.id')),
+    db.Column('timestamp', db.DateTime, default=datetime.utcnow)
+)
+
 class User(PaginatedAPIMixin, db.Model):
     # 设置数据库表名，Post模型中的外键 author_id 会引用 users.id
     __tablename__ = 'users'
@@ -94,10 +102,13 @@ class User(PaginatedAPIMixin, db.Model):
     # 用户最后一次查看 用户的粉丝 页面的时间，用来判断哪些粉丝是新的
     last_follows_read_time = db.Column(db.DateTime)
     # 用户最后一次查看 收到的点赞 页面的时间，用来判断哪些点赞是新的
-    last_likes_read_time = db.Column(db.DateTime)
+    last_comments_likes_read_time = db.Column(db.DateTime)
     # 用户最后一次查看 关注的人的博客 页面的时间，用来判断哪些文章是新的
     last_followeds_posts_read_time = db.Column(db.DateTime)
-
+    # 用户最后一次查看私信的时间
+    last_messages_read_time = db.Column(db.DateTime)
+    # 用户最后一次查看 收到的文章被喜欢 页面的时间，用来判断哪些喜欢是新的
+    last_posts_likes_read_time = db.Column(db.DateTime)
     # 用户通知
     notifications = db.relationship('Notification', backref='user', lazy='dynamic', cascade='all, delete-orphan')
 
@@ -105,8 +116,6 @@ class User(PaginatedAPIMixin, db.Model):
     messages_sent = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy='dynamic', cascade='all, delete-orphan')
     # 用户接受的私信
     messages_received = db.relationship('Message', foreign_keys='Message.recipient_id', backref='recipient', lazy='dynamic', cascade='all, delete-orphan')
-    # 用户最后一次查看私信的时间
-    last_messages_read_time = db.Column(db.DateTime)
     # harassers 骚扰者(被拉黑的人)
     # sufferers 受害者
     harassers = db.relationship(
@@ -281,9 +290,9 @@ class User(PaginatedAPIMixin, db.Model):
         last_read_time = self.last_follows_read_time or datetime(1900, 1, 1)
         return self.followers.filter(followers.c.timestamp > last_read_time).count()
 
-    def new_likes(self):
-        '''用户收到的新点赞计数'''
-        last_read_time = self.last_likes_read_time or datetime(1900, 1, 1)
+    def new_comments_likes(self):
+        '''用户收到的新评论点赞计数'''
+        last_read_time = self.last_comments_likes_read_time or datetime(1900, 1, 1)
         # 当前用户发表的所有评论当中，哪些被点赞了
         comments = self.comments.join(comments_likes).all()
         # 新的点赞记录计数
@@ -296,6 +305,24 @@ class User(PaginatedAPIMixin, db.Model):
                         "select * from comments_likes where user_id={} and comment_id={}".format(u.id, c.id))
                     timestamp = datetime.strptime(list(res)[0][2], '%Y-%m-%d %H:%M:%S.%f')
                     # 判断本条点赞记录是否为新的
+                    if timestamp > last_read_time:
+                        new_likes_count += 1
+        return new_likes_count
+
+    def new_posts_likes(self):
+        '''用户收到的文章被喜欢的新计数'''
+        last_read_time = self.last_posts_likes_read_time or datetime(1900, 1, 1)
+        # 当前用户发布的文章当中，哪些文章被喜欢了
+        posts = self.posts.join(posts_likes).all()
+        # 新的喜欢记录计数
+        new_likes_count = 0
+        for p in posts:
+            # 获取喜欢时间
+            for u in p.likers:
+                if u != self: # 用户自己喜欢自己的文章不需要被通知
+                    res = db.engine.execute("select * from posts_likes where user_id={} and post_id={}".format(u.id, p.id))
+                    timestamp = datetime.strptime(list(res)[0][2], '%Y-%m-%d %H:%M:%S.%f')
+                    # 判断本条喜欢记录是否为新的
                     if timestamp > last_read_time:
                         new_likes_count += 1
         return new_likes_count
@@ -342,6 +369,8 @@ class Post(PaginatedAPIMixin, db.Model):
 
     # 评论  一对多
     comments = db.relationship('Comment', backref='post', lazy='dynamic', cascade='all, delete-orphan')
+    # 博客文章与喜欢/收藏的人是多对多的关系
+    likers = db.relationship('User', secondary=posts_likes, backref=db.backref('liked_posts', lazy='dynamic'), lazy='dynamic')
 
     def __repr__(self):
         return '<Post {}>'.format(self.title)
@@ -354,6 +383,13 @@ class Post(PaginatedAPIMixin, db.Model):
             'body': self.body,
             'timestamp': self.timestamp,
             'views': self.views,
+            'likers_id': [user.id for user in self.likers],
+            'likers': [{
+                'id': user.id,
+                'username': user.username,
+                'name': user.name,
+                'avatar': user.avatar(128)
+            } for user in self.likers],
             'author': {
                 'id': self.author.id,
                 'username': self.author.username,
@@ -361,6 +397,7 @@ class Post(PaginatedAPIMixin, db.Model):
                 'avatar': self.author.avatar(128)
             },
             'comments_count': self.comments.count(),
+            'likers_count': self.likers.count(),
             '_links': {
                 'self': url_for('api.get_post', id=self.id),
                 'author_url': url_for('api.get_user', id=self.author_id),
@@ -373,6 +410,20 @@ class Post(PaginatedAPIMixin, db.Model):
         for field in ['title', 'summary', 'body', 'timestamp', 'views']:
             if field in data:
                 setattr(self, field, data[field])
+
+    def is_liked_by(self, user):
+        '''判断用户user是否已经收藏过该文章'''
+        return user in self.likers
+
+    def liked_by(self, user):
+        '''收藏'''
+        if not self.is_liked_by(user):
+            self.likers.append(user)
+
+    def unliked_by(self, user):
+        '''取消收藏'''
+        if self.is_liked_by(user):
+            self.likers.remove(user)
 
     @staticmethod
     def on_changed_body(target, value, oldvalue, initiator):
@@ -398,7 +449,7 @@ class Comment(PaginatedAPIMixin, db.Model):
     disabled = db.Column(db.Boolean, default=False)     #屏蔽显示
     mark_read = db.Column(db.Boolean, default=False)     #是否已读
     #点赞，多对多
-    likers = db.relationship('User', secondary=comments_likes, backref=db.backref('liked_comments', lazy='dynamic'))
+    likers = db.relationship('User', secondary=comments_likes, backref=db.backref('liked_comments', lazy='dynamic'), lazy='dynamic')
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
     #自引用的多级评论实现
