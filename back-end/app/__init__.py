@@ -2,7 +2,7 @@ import click
 from flask import Flask
 from app.api import bp as api_bp
 
-from app.extensions import db, migrate, cors
+from app.extensions import db, migrate, cors, mail
 from config import Config
 
 
@@ -43,6 +43,8 @@ def configure_extensions(app):
     db.init_app(app)
     # Init Flask-Migrate
     migrate.init_app(app, db)
+    # Init Flask-Mail
+    mail.init_app(app)
 
 def configure_before_handlers(app):
     '''Configures the before request handlers'''

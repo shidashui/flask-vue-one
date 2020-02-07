@@ -4,6 +4,7 @@
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_mail import Mail
 
 
 # Flask-Cors plugin
@@ -37,3 +38,6 @@ db = SQLAlchemy(metadata=MetaData(naming_convention=naming_convention))
         初始化Migrate对象时可以设置其提交类型为批处理
 """
 migrate = Migrate(render_as_batch=True)
+
+# Flask-Mail plugin
+mail = Mail()
