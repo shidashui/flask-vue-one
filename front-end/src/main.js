@@ -35,7 +35,7 @@ Vue.use(VueToasted,{
   //显示再页面哪个位置
   position:"top-center",
   //显示时长（毫秒）
-  duration:3000,
+  duration: 10000,
   //支持的图标集合
   iconPack:'material',  // set your iconPack, defaults to material. material|fontawesome|custom-class
   //执行的动作

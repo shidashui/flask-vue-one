@@ -205,6 +205,7 @@ class User(PaginatedAPIMixin, db.Model):
         now = datetime.utcnow()
         payload = {
             'user_id': self.id,
+            'confirmed': self.confirmed,
             'user_name': self.name if self.name else self.username,
             'user_avatar': base64.b64encode(self.avatar(24).encode('utf-8')).decode('utf-8'),
             'exp': now + timedelta(seconds=expires_in),
@@ -384,7 +385,7 @@ class User(PaginatedAPIMixin, db.Model):
         db.session.add(self)
         return True
 
-    def generate_rest_password_jwt(self, expires_in=3600):
+    def generate_reset_password_jwt(self, expires_in=3600):
         '''生成重置账户密码的JWT'''
         now = datetime.utcnow()
         payload = {
@@ -392,7 +393,7 @@ class User(PaginatedAPIMixin, db.Model):
             'exp': now + timedelta(seconds=expires_in),
             'iat': now
         }
-        return jwt.encode(payload, current_app.config['SECERT_KEY'], algorithm='HS256').decode('utf-8')
+        return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256').decode('utf-8')
 
     @staticmethod
     def verify_reset_password_jwt(token):

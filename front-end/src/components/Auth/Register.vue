@@ -84,12 +84,14 @@
 
             const path = '/api/users'
             const payload = {
+              confirm_email_base_url: window.location.href.split('/', 4).join('/') + '/unconfirmed/?token=',
               username: this.registerForm.username,
               email: this.registerForm.email,
               password: this.registerForm.password
             }
             this.$axios.post(path,payload)
               .then((response) =>{
+                this.$toasted.success('A confirmation email has been sent to you by email.', { icon: 'fingerprint' })
                 //成功后跳转到login页面
                 this.$router.push('/login')
               })
